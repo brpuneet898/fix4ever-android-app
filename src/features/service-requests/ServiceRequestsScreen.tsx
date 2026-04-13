@@ -260,10 +260,9 @@ export function ServiceRequestsScreen() {
           <Button
             title="Create New Request"
             variant="primary"
-            onPress={() => {
-              // TODO: Navigate to create request screen
-              console.log('Create new request');
-            }}
+            onPress={  (() => {
+              navigation.navigate('ServiceRequestStack');
+          })} 
           />
         </View>
         
