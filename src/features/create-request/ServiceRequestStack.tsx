@@ -12,6 +12,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import { request, requestWithAuth } from '../../core/api';
 import Geolocation from '@react-native-community/geolocation';
 import axios from 'axios';
+import Config from 'react-native-config';
 
 import { config } from '../../core/config';
 const base = config.API_BASE_URL;
@@ -259,17 +260,36 @@ export function ServiceRequestStack({
             setAddressPredictions([]);
             return;
           }
+
+          const placesKey = Config.GOOGLE_MAPS_API_KEY;
+          if (!placesKey) {
+            setAddressPredictions([]);
+            return;
+          }
     
           setLoadingAddress(true);
           try {
-            // Mock API call - replace with actual Google Places API
-            await new Promise((resolve: any) => setTimeout(resolve, 300));
-            setAddressPredictions([
-              { place_id: '1', description: `${query}, New York, NY` },
-              { place_id: '2', description: `${query}, Los Angeles, CA` },
-            ]);
+            const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
+              query
+            )}&key=${placesKey}&language=en&components=country:in`;
+
+            const response = await fetch(url);
+            if (!response.ok) {
+              throw new Error(`Autocomplete request failed with status ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data?.status === 'OK' && Array.isArray(data?.predictions)) {
+              const predictions = data.predictions.map((item: any) => ({
+                place_id: item.place_id,
+                description: item.description,
+              }));
+              setAddressPredictions(predictions);
+            } else {
+              setAddressPredictions([]);
+            }
           } catch (error) {
-            console.error('Address autocomplete error:', error);
+            setAddressPredictions([]);
           } finally {
             setLoadingAddress(false);
           }
@@ -298,9 +318,6 @@ export function ServiceRequestStack({
     const getAllBrands = async () => {
       try {
         setLoading(true);
-        // const token = await getStoredToken();
-        // if (!token) throw new Error('No token found');
-        
         const response = await request<ApiResponse<any>>(
           `/brands`,
           {
@@ -317,7 +334,7 @@ export function ServiceRequestStack({
             brand.key = brand.key;
             brand.name = brand.key.split("/").at(-1).split("-").at(0);
             brand.img_url = brand.url;
-            brand.id = brand.key || index.toString(); // Ensure unique ID
+            brand.id = brand.key || index.toString();
             return brand;
           })
           setBrands(brands);
@@ -352,8 +369,6 @@ export function ServiceRequestStack({
             return model;
           })
           setModels(models);
-        } else {
-          console.log('Models API error:', response.data);
         }
 
       } catch (error) {
@@ -369,11 +384,8 @@ export function ServiceRequestStack({
     if (Platform.OS === 'ios') {
       return new Promise((resolve) => {
         Geolocation.requestAuthorization(
-          (success: any) => resolve(success === 'granted' || success === 'always'),
-          (error: any) => {
-            console.log('iOS location permission error:', error);
-            resolve(false);
-          }
+          () => resolve(true),
+          () => resolve(false)
         );
       });
     } else {
@@ -390,13 +402,72 @@ export function ServiceRequestStack({
         );
         return granted === PermissionsAndroid.RESULTS.GRANTED;
       } catch (err) {
-        console.warn('Location permission error:', err);
         return false;
       }
     }
   };
 
-    // Get current location
+  const resolveLocationDetails = async (latitude: number, longitude: number) => {
+    let resolvedAddress = `Location detected at ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+    let resolvedCity = '';
+
+    try {
+      const geocodingKey = Config.GOOGLE_MAPS_API_KEY;
+
+      if (!geocodingKey) {
+        return;
+      }
+
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${geocodingKey}`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Reverse geocoding failed with status ${response.status}`);
+      }
+
+      const geocode = await response.json();
+      if (geocode.status === 'OK' && Array.isArray(geocode.results) && geocode.results.length > 0) {
+        const addressResults = geocode.results.filter((result: any) => {
+          const types = result?.types || [];
+          return (
+            types.includes('street_address') ||
+            types.includes('premise') ||
+            types.includes('establishment') ||
+            types.includes('route') ||
+            types.includes('subpremise')
+          );
+        });
+
+        const addressResult = addressResults[0] || geocode.results[0];
+        const cityResult = geocode.results.find((result: any) =>
+          (result?.address_components || []).some((component: any) =>
+            component?.types?.includes('locality') ||
+            component?.types?.includes('administrative_area_level_3') ||
+            component?.types?.includes('administrative_area_level_2') ||
+            component?.types?.includes('sublocality') ||
+            component?.types?.includes('postal_town')
+          )
+        ) || geocode.results[0];
+
+        const cityComponent = (cityResult?.address_components || []).find((component: any) =>
+          component?.types?.includes('locality') ||
+          component?.types?.includes('administrative_area_level_3') ||
+          component?.types?.includes('administrative_area_level_2') ||
+          component?.types?.includes('sublocality') ||
+          component?.types?.includes('postal_town')
+        );
+
+        resolvedAddress = addressResult?.formatted_address || resolvedAddress;
+        resolvedCity = cityComponent?.long_name || '';
+      }
+    } catch (geocodeError) {
+    }
+
+    updateFormData('address', resolvedAddress);
+    updateFormData('city', resolvedCity || 'Detected City');
+  };
+
+  // Get current location
   const getCurrentLocation = async () => {
     setIsGettingLocation(true);
     setLocationError(null);
@@ -415,7 +486,7 @@ export function ServiceRequestStack({
         authorizationLevel: 'whenInUse',
       });
 
-      // Try with high accuracy first, then fallback to lower accuracy
+      // Try a fast cached position first, then fall back to a live fix.
       const tryGetLocation = (highAccuracy: boolean) => {
         return new Promise((resolve, reject) => {
           Geolocation.getCurrentPosition(
@@ -423,8 +494,8 @@ export function ServiceRequestStack({
             (error) => reject(error),
             {
               enableHighAccuracy: highAccuracy,
-              timeout: highAccuracy ? 10000 : 15000,
-              maximumAge: highAccuracy ? 1000 : 60000,
+              timeout: highAccuracy ? 7000 : 2500,
+              maximumAge: highAccuracy ? 5000 : 60000,
             }
           );
         });
@@ -432,13 +503,10 @@ export function ServiceRequestStack({
 
       let position;
       try {
-        // First try with high accuracy
-        position = await tryGetLocation(true);
+        position = await tryGetLocation(false);
       } catch (highAccuracyError) {
-        console.log('High accuracy location failed, trying with lower accuracy:', highAccuracyError);
         try {
-          // Fallback to lower accuracy
-          position = await tryGetLocation(false);
+          position = await tryGetLocation(true);
         } catch (lowAccuracyError) {
           throw lowAccuracyError;
         }
@@ -448,13 +516,12 @@ export function ServiceRequestStack({
       const { latitude, longitude } = (position as any).coords;
       updateFormData('latitude', latitude);
       updateFormData('longitude', longitude);
-      
-      // Mock address and city based on coordinates (replace with actual geocoding)
-      const mockAddress = `Location detected at ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-      const mockCity = 'Detected City';
-      // updateFormData('address', mockAddress);
-      // updateFormData('city', mockCity);
-      
+
+      // Update the map immediately, then resolve the human-readable address in the background.
+      Promise.resolve().then(() => {
+        void resolveLocationDetails(latitude, longitude);
+      });
+
       setIsGettingLocation(false);
       setLocationError(null);
       
@@ -613,27 +680,6 @@ export function ServiceRequestStack({
     return stepIndex < 6;
   };
 
-    // Helper function to convert React Native file URIs to blobs
-  // const convertFilesToBlobs = async (files: File[]): Promise<File[]> => {
-  //   const blobFiles: File[] = [];
-    
-  //   for (const file of files) {
-  //     try {
-  //       // For React Native, fetch the URI to get actual blob data
-  //       const response = await fetch((file as any).uri);
-  //       const blob = await response.blob();
-        
-  //       // Create a proper File object with blob data
-  //       const blobFile = new File([blob], file.name, { type: file.type });
-  //       blobFiles.push(blobFile);
-  //     } catch (error) {
-  //       console.error('Error converting file to blob:', file.name, error);
-  //     }
-  //   }
-    
-  //   return blobFiles;
-  // };
-
     // Form submission
     const handleSubmit = async (currentNavigation: any) => {
       const currentRoute = currentNavigation.getState();
@@ -647,13 +693,11 @@ export function ServiceRequestStack({
       setError(null);
   
       try {
-        const token = await getStoredToken();
-
-        // Create FormData object
-        const formDataObj = new FormData();
-
-        // Append all form fields except images
-        Object.entries(formData).forEach(([key, value]) => {
+            const token = await getStoredToken();
+            const formDataObj = new FormData();
+            // Create FormData object
+            Object.entries(formData).forEach(([key, value]) => {
+                // Append all form fields except images
           if (key !== 'issueImages' && value !== undefined && value !== null) {
             // These specific fields need to be JSON strings
             if (key === 'mainProblem' || key === 'subProblem' || key === 'relationalBehaviors') {
@@ -666,8 +710,8 @@ export function ServiceRequestStack({
           }
         });
 
-        // Append image files to FormData
-        // Format: { uri: local path, type: mime type, name: filename }
+            // Append image files to FormData
+            // Format: { uri: local path, type: mime type, name: filename }
         if (formData.issueImages.length > 0) {
           formData.issueImages.forEach((file: any, index: number) => {
             formDataObj.append('issueImages', {
@@ -691,7 +735,6 @@ export function ServiceRequestStack({
           Alert.alert('Error', resp?.data?.message || 'Failed to submit request');
         }
       } catch (error) {
-        console.error('Submission error:', error);
         setError('Failed to submit request');
       } finally {
         setIsSubmitting(false);
@@ -895,7 +938,6 @@ export function ServiceRequestStack({
   );
 }
 
-// Navigation Footer Component
 function NavigationFooter({
   canGoBack,
   canGoForward,
