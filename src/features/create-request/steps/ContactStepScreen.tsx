@@ -1,25 +1,30 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   TextInput,
-  FlatList,
   ActivityIndicator,
-  Alert,
   Keyboard,
+  Alert,
   StyleSheet,
   ViewStyle,
   TextStyle,
-  KeyboardAvoidingView,
   ScrollView
 } from 'react-native';
+import MapView, { Marker, Region } from 'react-native-maps';
+import Config from 'react-native-config';
 import { useTheme } from '../../../core/theme';
 import { Input } from '../../../core/components';
 
 import Icon from 'react-native-vector-icons/Feather';
 
 import { FormData } from '../ServiceRequestStack';
+import {
+  DEFAULT_SERVICE_LOCATION,
+  getServiceAreaSummaryText,
+  isWithinServiceArea,
+} from '../serviceArea';
 
 
 interface ContactStepScreenProps {
@@ -53,13 +58,218 @@ export function ContactStepScreen({
   isGettingLocation,
   locationError,
 }: ContactStepScreenProps) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing } = useTheme();
+
+  const defaultRegion: Region = {
+    latitude: DEFAULT_SERVICE_LOCATION.latitude,
+    longitude: DEFAULT_SERVICE_LOCATION.longitude,
+    latitudeDelta: 0.9,
+    longitudeDelta: 0.9,
+  };
+
+  const [mapRegion, setMapRegion] = useState<Region>(defaultRegion);
+  const [isResolvingAddress, setIsResolvingAddress] = useState(false);
 
   
   // Simple text change handler - only update parent
   const handleTextChange = (field: string, value: string) => {
     updateFormData(field as any, value);
   };
+
+  const hasLatLong =
+    Number.isFinite(formData.latitude) &&
+    Number.isFinite(formData.longitude) &&
+    !(formData.latitude === 1 && formData.longitude === 1);
+
+  const selectedCoordinate = hasLatLong
+    ? { latitude: formData.latitude, longitude: formData.longitude }
+    : null;
+
+  const showOutOfServiceAreaAlert = () => {
+    Alert.alert(
+      'Location Not Serviceable',
+      `We currently serve locations within ${getServiceAreaSummaryText()} only.`
+    );
+  };
+
+  const setMapPin = (latitude: number, longitude: number): boolean => {
+    if (!isWithinServiceArea(latitude, longitude)) {
+      showOutOfServiceAreaAlert();
+      return false;
+    }
+
+    updateFormData('latitude', latitude);
+    updateFormData('longitude', longitude);
+    setMapRegion({
+      latitude,
+      longitude,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    });
+    return true;
+  };
+
+  const reverseGeocodeLatLng = async (latitude: number, longitude: number) => {
+    const geocodingKey = Config.GOOGLE_MAPS_API_KEY;
+
+    if (!geocodingKey) {
+      return;
+    }
+
+    setIsResolvingAddress(true);
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${geocodingKey}`
+      );
+      if (!response.ok) {
+        return;
+      }
+
+      const geocode = await response.json();
+      if (geocode?.status !== 'OK' || !Array.isArray(geocode?.results) || !geocode.results.length) {
+        return;
+      }
+
+      const first = geocode.results[0];
+      const resolvedAddress = first?.formatted_address || '';
+      const cityComponent = (first?.address_components || []).find((component: any) =>
+        component?.types?.includes('locality') ||
+        component?.types?.includes('administrative_area_level_3') ||
+        component?.types?.includes('administrative_area_level_2') ||
+        component?.types?.includes('sublocality') ||
+        component?.types?.includes('postal_town')
+      );
+
+      if (resolvedAddress) {
+        updateFormData('address', resolvedAddress);
+        setAddressQuery(resolvedAddress);
+      }
+      if (cityComponent?.long_name) {
+        updateFormData('city', cityComponent.long_name);
+      }
+    } catch (error) {
+    } finally {
+      setIsResolvingAddress(false);
+    }
+  };
+
+  const resolveAddressToRegion = async (inputAddress: string, placeId?: string) => {
+    const geocodingKey = Config.GOOGLE_MAPS_API_KEY;
+
+    if (!geocodingKey || !inputAddress.trim()) {
+      return;
+    }
+
+    setIsResolvingAddress(true);
+    try {
+      const params = placeId
+        ? `place_id=${encodeURIComponent(placeId)}`
+        : `address=${encodeURIComponent(inputAddress)}`;
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?${params}&key=${geocodingKey}`
+      );
+      if (!response.ok) {
+        return;
+      }
+
+      const geocode = await response.json();
+      if (geocode?.status !== 'OK' || !Array.isArray(geocode?.results) || !geocode.results.length) {
+        return;
+      }
+
+      const first = geocode.results[0];
+      const location = first?.geometry?.location;
+      const latitude = Number(location?.lat);
+      const longitude = Number(location?.lng);
+
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        return;
+      }
+
+      const wasPinUpdated = setMapPin(latitude, longitude);
+      if (!wasPinUpdated) {
+        return;
+      }
+
+      const cityComponent = (first?.address_components || []).find((component: any) =>
+        component?.types?.includes('locality') ||
+        component?.types?.includes('administrative_area_level_2') ||
+        component?.types?.includes('postal_town')
+      );
+      if (cityComponent?.long_name && !formData.city) {
+        updateFormData('city', cityComponent.long_name);
+      }
+    } catch (e) {
+    } finally {
+      setIsResolvingAddress(false);
+    }
+  };
+
+  const onAddressChange = (value: string) => {
+    handleTextChange('address', value);
+    setAddressQuery(value);
+    fetchAutocomplete(value);
+  };
+
+  const onSelectPrediction = async (item: any) => {
+    const selectedAddress = item?.description || '';
+    updateFormData('address', selectedAddress);
+    setAddressQuery(selectedAddress);
+    fetchAutocomplete('');
+    Keyboard.dismiss();
+    await resolveAddressToRegion(selectedAddress, item?.place_id);
+  };
+
+  const handleMapPress = async (event: any) => {
+    const coordinate = event?.nativeEvent?.coordinate;
+    const latitude = Number(coordinate?.latitude);
+    const longitude = Number(coordinate?.longitude);
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return;
+    }
+
+    const wasPinUpdated = setMapPin(latitude, longitude);
+    if (!wasPinUpdated) {
+      return;
+    }
+    await reverseGeocodeLatLng(latitude, longitude);
+  };
+
+  const handleMarkerDragEnd = async (event: any) => {
+    const coordinate = event?.nativeEvent?.coordinate;
+    const latitude = Number(coordinate?.latitude);
+    const longitude = Number(coordinate?.longitude);
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return;
+    }
+
+    const wasPinUpdated = setMapPin(latitude, longitude);
+    if (!wasPinUpdated) {
+      return;
+    }
+    await reverseGeocodeLatLng(latitude, longitude);
+  };
+
+  useEffect(() => {
+    if (!hasLatLong) {
+      return;
+    }
+
+    setMapRegion({
+      latitude: formData.latitude,
+      longitude: formData.longitude,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    });
+  }, [formData.latitude, formData.longitude, hasLatLong]);
+
+  useEffect(() => {
+  }, [mapRegion]);
+
+  useEffect(() => {
+  }, [selectedCoordinate, hasLatLong]);
 
   const styles = StyleSheet.create({
     container: {
@@ -117,14 +327,6 @@ export function ContactStepScreen({
     optionTextSelected: {
       color: colors.primaryForeground,
     } as TextStyle,
-    addressInputContainer: {
-      position: 'relative' as const,
-    } as ViewStyle,
-    loadingIndicator: {
-      position: 'absolute' as const,
-      right: 12,
-      top: 12,
-    } as ViewStyle,
     suggestionsContainer: {
       backgroundColor: colors.card,
       borderRadius: 8,
@@ -132,9 +334,6 @@ export function ContactStepScreen({
       borderColor: colors.border,
       maxHeight: 200,
       zIndex: 1000,
-    } as ViewStyle,
-    suggestionsList: {
-      maxHeight: 180,
     } as ViewStyle,
     suggestionItem: {
       padding: spacing.md,
@@ -179,11 +378,204 @@ export function ContactStepScreen({
       color: colors.destructive,
       marginTop: spacing.sm,
     } as TextStyle,
+    locationDetailsCard: {
+      marginTop: spacing.md,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      backgroundColor: colors.card,
+    } as ViewStyle,
+    locationDetailsTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.foreground,
+      marginBottom: spacing.sm,
+      textAlign: 'center' as const,
+    } as TextStyle,
+    searchRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
+    } as ViewStyle,
+    searchInput: {
+      flex: 1,
+      height: 48,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 24,
+      paddingHorizontal: spacing.md,
+      color: colors.foreground,
+      backgroundColor: colors.background,
+      fontSize: 15,
+    } as TextStyle,
+    currentLocationIconButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      borderWidth: 1,
+      borderColor: colors.foreground,
+      backgroundColor: colors.card,
+    } as ViewStyle,
+    miniMapContainer: {
+      borderRadius: 12,
+      overflow: 'hidden' as const,
+      borderWidth: 1,
+      borderColor: colors.border,
+    } as ViewStyle,
+    miniMap: {
+      width: '100%',
+      height: 220,
+    } as ViewStyle,
+    mapOverlay: {
+      position: 'absolute' as const,
+      top: spacing.sm,
+      right: spacing.sm,
+      backgroundColor: colors.card,
+      borderRadius: 999,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+      borderWidth: 1,
+      borderColor: colors.border,
+    } as ViewStyle,
+    mapOverlayText: {
+      fontSize: 12,
+      color: colors.foreground,
+      fontWeight: '500' as const,
+    } as TextStyle,
+    mapHelp: {
+      marginTop: spacing.sm,
+      fontSize: 12,
+      color: colors.mutedForeground,
+      textAlign: 'center' as const,
+    } as TextStyle,
+    locationSuccessCard: {
+      marginTop: spacing.sm,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderRadius: 12,
+      backgroundColor: '#EAFBF0',
+      borderWidth: 1,
+      borderColor: '#9BE7B3',
+    } as ViewStyle,
+    locationSuccessTitle: {
+      fontSize: 14,
+      color: '#0B8A35',
+      fontWeight: '600' as const,
+      marginBottom: 2,
+      textAlign: 'center' as const,
+    } as TextStyle,
+    locationSuccessText: {
+      fontSize: 12,
+      color: '#0B8A35',
+      textAlign: 'center' as const,
+    } as TextStyle,
+    mapHint: {
+      marginTop: spacing.xs,
+      fontSize: 12,
+      color: colors.mutedForeground,
+    } as TextStyle,
   });
+
+  const renderLocationPicker = () => {
+    return (
+    <View style={styles.locationDetailsCard}>
+      <Text style={styles.locationDetailsTitle}>Location Details</Text>
+      <View style={styles.searchRow}>
+        <TextInput
+          style={styles.searchInput}
+          value={addressQuery || formData.address}
+          onChangeText={onAddressChange}
+          placeholder="Search for a location or address..."
+          placeholderTextColor={colors.mutedForeground}
+        />
+        <TouchableOpacity
+          style={styles.currentLocationIconButton}
+          onPress={getCurrentLocation}
+          disabled={isGettingLocation}
+        >
+          {isGettingLocation ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <Icon name="map-pin" size={18} color={colors.foreground} />
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {addressPredictions && addressPredictions.length > 0 && (
+        <ScrollView
+          style={styles.suggestionsContainer}
+          nestedScrollEnabled
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator
+        >
+          {addressPredictions.map((item: any, index: number) => (
+            <TouchableOpacity
+              key={item.place_id || `${item.description}-${index}`}
+              style={styles.suggestionItem}
+              onPress={() => onSelectPrediction(item)}
+            >
+              <Text style={styles.suggestionText} numberOfLines={1}>
+                {item.description}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+
+      <View style={styles.miniMapContainer}>
+        <MapView
+          style={styles.miniMap}
+          region={mapRegion}
+          onPress={handleMapPress}
+          onMapReady={() => {}}
+          onMapLoaded={() => {}}
+          onRegionChangeComplete={() => {}}
+          zoomEnabled
+          scrollEnabled
+          rotateEnabled={false}
+          pitchEnabled={false}
+          toolbarEnabled={false}
+        >
+          {selectedCoordinate && (
+            <Marker
+              coordinate={selectedCoordinate}
+              draggable
+              onDragEnd={handleMarkerDragEnd}
+            />
+          )}
+        </MapView>
+        <View style={styles.mapOverlay}>
+          <Text style={styles.mapOverlayText}>Tap map to drop pin</Text>
+        </View>
+      </View>
+
+      <Text style={styles.mapHelp}>
+        Tip: Search, tap the map, drag the pin, or use current location in serviceable areas.
+      </Text>
+      {selectedCoordinate && (
+        <View style={styles.locationSuccessCard}>
+          <Text style={styles.locationSuccessTitle}>Location captured successfully!</Text>
+          <Text style={styles.locationSuccessText}>
+            Coordinates: {selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}
+          </Text>
+        </View>
+      )}
+      {(isResolvingAddress || locationError) && (
+        <Text style={styles.mapHint}>
+          {isResolvingAddress ? 'Resolving selected location...' : locationError}
+        </Text>
+      )}
+    </View>
+    );
+  };
 
   return (
     <ScrollView
-    
+      nestedScrollEnabled
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.container}>
@@ -258,102 +650,7 @@ export function ContactStepScreen({
               keyboardType="phone-pad"
               maxLength={10}
             />
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Address</Text>
-              <View style={styles.addressInputContainer}>
-                <TextInput
-                  style={[
-                    {
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                      borderRadius: 8,
-                      padding: spacing.md,
-                      fontSize: 16,
-                      color: colors.foreground,
-                      backgroundColor: colors.background,
-                      height: 120,
-                    },
-                    errors.address && { borderColor: colors.destructive },
-                  ]}
-                  value={formData.address}
-                  onChangeText={(value: string) => handleTextChange('address', value)}
-                  placeholder="Enter your complete address"
-                  multiline
-                  textAlignVertical="top"
-                />
-                {loadingAddress && (
-                  <ActivityIndicator 
-                    size="small" 
-                    color={colors.primary} 
-                    style={styles.loadingIndicator} 
-                  />
-                )}
-              </View>
-              {errors.address && (
-                <Text style={{ color: colors.destructive, fontSize: 12, marginTop: 4 }}>
-                  {errors.address}
-                </Text>
-              )}
-              
-              {addressPredictions && addressPredictions.length > 0 && (
-                <View style={styles.suggestionsContainer}>
-                  <FlatList
-                    keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode="on-drag"
-                    data={addressPredictions}
-                    keyExtractor={(item) => item.place_id}
-                    style={styles.suggestionsList}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity
-                        style={styles.suggestionItem}
-                        onPress={() => {
-                          {""}
-                          // Dismiss keyboard after selection
-                          Keyboard.dismiss();
-                        }}
-                      >
-                        <Text style={styles.suggestionText} numberOfLines={1}>
-                          {item.description}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  />
-                </View>
-              )}
-            </View>
-            <Input
-              label="City"
-              value={formData.city}
-              onChangeText={(value: string) => handleTextChange('city', value)}
-              error={errors.city}
-              placeholder="Enter your city"
-            />
-            <View style={styles.locationSection}>
-              <Text style={styles.locationLabel}>Get Current Location</Text>
-              <TouchableOpacity
-                style={[
-                  styles.locationButton,
-                  isGettingLocation && styles.locationButtonDisabled,
-                ]}
-                onPress={getCurrentLocation}
-                disabled={isGettingLocation}
-              >
-                {isGettingLocation ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-                  <Icon name="map-pin" size={20} color={colors.primary} />
-                )}
-                <Text style={[
-                  styles.locationButtonText,
-                  isGettingLocation && styles.locationButtonTextDisabled,
-                ]}>
-                  {isGettingLocation ? 'Getting Location...' : 'Use Current Location'}
-                </Text>
-              </TouchableOpacity>
-              {locationError && (
-                <Text style={styles.locationError}>{locationError}</Text>
-              )}
-            </View>
+            {renderLocationPicker()}
           </>
         ) : (
           <>
@@ -373,104 +670,7 @@ export function ContactStepScreen({
               keyboardType="phone-pad"
               maxLength={10}
             />
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Address</Text>
-              <View style={styles.addressInputContainer}>
-                <TextInput
-                  style={[
-                    {
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                      borderRadius: 8,
-                      padding: spacing.md,
-                      fontSize: 16,
-                      color: colors.foreground,
-                      backgroundColor: colors.background,
-                      height: 120,
-                    },
-                    errors.address && { borderColor: colors.destructive },
-                  ]}
-                  value={formData.address}
-                  onChangeText={(value: string) => {
-                    updateFormData('address', value);
-                  }}
-                  placeholder="Enter complete address"
-                  multiline
-                  textAlignVertical="top"
-                />
-                {loadingAddress && (
-                  <ActivityIndicator 
-                    size="small" 
-                    color={colors.primary} 
-                    style={styles.loadingIndicator} 
-                  />
-                )}
-              </View>
-              {errors.address && (
-                <Text style={{ color: colors.destructive, fontSize: 12, marginTop: 4 }}>
-                  {errors.address}
-                </Text>
-              )}
-              
-              {addressPredictions && addressPredictions.length > 0 && (
-                <View style={styles.suggestionsContainer}>
-                  <FlatList
-                    keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode="on-drag"
-                    data={addressPredictions}
-                    keyExtractor={(item) => item.place_id}
-                    style={styles.suggestionsList}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity
-                        style={styles.suggestionItem}
-                        onPress={() => {
-                          onSelectPrediction(item);
-                          // Dismiss keyboard after selection
-                          Keyboard.dismiss();
-                        }}
-                      >
-                        <Text style={styles.suggestionText} numberOfLines={1}>
-                          {item.description}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  />
-                </View>
-              )}
-            </View>
-            <Input
-              label="City"
-              value={formData.city}
-              onChangeText={(value: string) => handleTextChange('city', value)}
-              error={errors.city}
-              placeholder="Enter city"
-            />
-            <View style={styles.locationSection}>
-              <Text style={styles.locationLabel}>Get Current Location</Text>
-              <TouchableOpacity
-                style={[
-                  styles.locationButton,
-                  isGettingLocation && styles.locationButtonDisabled,
-                ]}
-                onPress={getCurrentLocation}
-                disabled={isGettingLocation}
-              >
-                {isGettingLocation ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-                  <Icon name="map-pin" size={20} color={colors.primary} />
-                )}
-                <Text style={[
-                  styles.locationButtonText,
-                  isGettingLocation && styles.locationButtonTextDisabled,
-                ]}>
-                  {isGettingLocation ? 'Getting Location...' : 'Use Current Location'}
-                </Text>
-              </TouchableOpacity>
-              {locationError && (
-                <Text style={styles.locationError}>{locationError}</Text>
-              )}
-            </View>
+            {renderLocationPicker()}
           </>
         )}
       </View>
