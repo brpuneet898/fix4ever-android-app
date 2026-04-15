@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -9,7 +9,8 @@ import {
  } from 'react-native';
 //import { createStackNavigator } from '@react-navigation/stack';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import { request, requestWithAuth } from '../../core/api';
+import { request } from '../../core/api';
+import { useRoute } from '@react-navigation/native';
 import Geolocation from '@react-native-community/geolocation';
 import axios from 'axios';
 import Config from 'react-native-config';
@@ -18,6 +19,11 @@ import { config } from '../../core/config';
 const base = config.API_BASE_URL;
 
 import { getStoredToken } from '../../core/storage';
+import {
+  DraftServiceRequest,
+  getDraftServiceRequestById,
+  saveDraftServiceRequest,
+} from '../../core/api';
 
 // Response interface for service request creation
 interface ServiceRequestResponse {
@@ -119,6 +125,11 @@ const getStepIndex = (routeName: string): number => {
   return steps.indexOf(routeName);
 };
 
+const getStepNameByIndex = (stepIndex: number): string | null => {
+  const steps = ['Contact', 'Brand', 'Model', 'Problem', 'DateTime', 'Images', 'Review'];
+  return steps[stepIndex] || null;
+};
+
 // STEPS constant for header titles
 const STEPS = [
   { id: 'contact', title: 'Contact & Request' },
@@ -130,8 +141,56 @@ const STEPS = [
   { id: 'review', title: 'Review' },
 ];
 
+const mapUrgencyToPriority = (
+  urgency: 'normal' | 'express' | 'urgent'
+): 'low' | 'medium' | 'high' | 'urgent' => {
+  if (urgency === 'urgent') {
+    return 'urgent';
+  }
+  if (urgency === 'express') {
+    return 'high';
+  }
+  return 'medium';
+};
+
+const resolveDraftId = (draft: any): string | null => {
+  if (!draft) {
+    return null;
+  }
+  return draft._id || draft.id || draft.draftId || null;
+};
+
+const STACK_STEP_NAMES = ['Contact', 'Brand', 'Model', 'Problem', 'DateTime', 'Images', 'Review'] as const;
+
+const STEP_KEY_TO_SCREEN: Record<string, (typeof STACK_STEP_NAMES)[number]> = {
+  contact: 'Contact',
+  brand: 'Brand',
+  model: 'Model',
+  problem: 'Problem',
+  datetime: 'DateTime',
+  dateTime: 'DateTime',
+  images: 'Images',
+  review: 'Review',
+  schedule: 'DateTime',
+};
+
+const resolveDraftStepScreen = (draft: DraftServiceRequest): (typeof STACK_STEP_NAMES)[number] => {
+  const key = String(draft.currentStepKey || '').trim();
+  if (key && STEP_KEY_TO_SCREEN[key]) {
+    return STEP_KEY_TO_SCREEN[key];
+  }
+
+  const idx = Number(draft.currentStep);
+  if (Number.isFinite(idx)) {
+    const safeIdx = Math.max(0, Math.min(STACK_STEP_NAMES.length - 1, idx));
+    return STACK_STEP_NAMES[safeIdx];
+  }
+
+  return 'Contact';
+};
+
 // Custom Header Component
-const StepHeader = ({ navigation, routeName }: { navigation: any; routeName: string }) => {
+const StepHeader = ({ onClose, routeName }: { onClose: () => void; routeName: string }) => {
   const { colors, spacing } = useTheme();
   const stepIndex = getStepIndex(routeName);
   const title = `${stepIndex + 1}/7 ${STEPS[stepIndex]?.title || 'Service Request'}`;
@@ -147,7 +206,7 @@ const StepHeader = ({ navigation, routeName }: { navigation: any; routeName: str
       borderBottomColor: colors.border,
     }}>
       <TouchableOpacity
-        onPress={() => navigation.goBack()}
+        onPress={onClose}
         style={{ marginRight: spacing.md }}
       >
         <Text style={{ color: colors.foreground, fontSize: 24 }}>←</Text>
@@ -175,10 +234,19 @@ export function ServiceRequestStack({
   navigation,
 }: ServiceRequestStackProps) {
   const { colors, spacing } = useTheme();
+  const route = useRoute<any>();
+  const draftIdFromRoute = route?.params?.draftId as string | undefined;
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeDraftId, setActiveDraftId] = useState<string | null>(draftIdFromRoute || null);
+  const [isLoadingDraft, setIsLoadingDraft] = useState<boolean>(Boolean(draftIdFromRoute));
+  const [initialStepName, setInitialStepName] = useState<(typeof STACK_STEP_NAMES)[number]>('Contact');
+  const activeDraftIdRef = useRef<string | null>(draftIdFromRoute || null);
+  const isDraftCreateInFlightRef = useRef(false);
+  const lastSavedFingerprintRef = useRef<string | null>(null);
+  const lastSavedStepIndexRef = useRef<number>(-1);
 
   const [brands, setBrands] = useState<any[]>([]);
   const [models, setModels] = useState<any[]>([]);
@@ -240,6 +308,261 @@ export function ServiceRequestStack({
       subProblem: {},
       relationalBehaviors: []
     });
+
+  const calculatedPricing = useMemo(() => {
+    return {
+      finalChargeRange: { min: 500, max: 1500 },
+    };
+  }, []);
+
+  const getIssueLevelForPayload = useCallback(() => {
+    const raw =
+      typeof formData.issueLevel === 'string'
+        ? formData.issueLevel
+        : formData.issueLevel?.id || formData.issueLevel?.name || 'hardware';
+
+    const normalized = String(raw).toLowerCase();
+    if (normalized.includes('software')) {
+      return 'software';
+    }
+    if (normalized.includes('board') || normalized.includes('motherboard')) {
+      return 'board';
+    }
+    return 'hardware';
+  }, [formData.issueLevel]);
+
+  const draftPayload = useMemo(
+    () => ({
+      address: formData.address,
+      city: formData.city,
+      brand: formData.brand,
+      model: formData.model,
+      problemDescription: formData.problemDescription,
+      userName: formData.userName,
+      userPhone: formData.userPhone,
+      requestType: formData.requestType,
+      serviceType: formData.serviceType,
+      beneficiaryName: formData.beneficiaryName,
+      beneficiaryPhone: formData.beneficiaryPhone,
+      preferredDate: formData.preferredDate || undefined,
+      preferredTime: formData.preferredTime || undefined,
+      selectedDate: formData.selectedDate || undefined,
+      selectedTimeSlot: formData.selectedTimeSlot || undefined,
+      priority: mapUrgencyToPriority(formData.urgencyLevel),
+      isUrgent: formData.urgencyLevel === 'urgent',
+      issueLevel: getIssueLevelForPayload(),
+      urgency: formData.urgencyLevel === 'normal' ? 'standard' : formData.urgencyLevel,
+      wantsWarranty: formData.warrantyOption !== 'none',
+      wantsDataSafety: formData.dataSafety,
+      calculatedPricing,
+      selectedProblem: {
+        mainProblem: formData.mainProblem,
+        subProblem: formData.subProblem,
+        relationalBehaviors: formData.relationalBehaviors,
+      },
+      problemType: formData.problemType,
+      knowsProblem: formData.knowsProblem,
+      location: {
+        address: formData.address,
+        lat: formData.latitude,
+        lng: formData.longitude,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
+      },
+      issueImages: formData.issueImages
+        .map((img: any) => img?.uri)
+        .filter((uri: string | undefined): uri is string => Boolean(uri)),
+    }),
+    [calculatedPricing, formData, getIssueLevelForPayload]
+  );
+
+  const setResolvedDraftId = useCallback((draftId: string | null) => {
+    activeDraftIdRef.current = draftId;
+    setActiveDraftId(draftId);
+  }, []);
+
+  const handleCloseFlow = useCallback(() => {
+    if (navigation?.canGoBack?.()) {
+      navigation.goBack();
+      return;
+    }
+    navigation?.navigate?.('Main');
+  }, [navigation]);
+
+  const saveDraftProgress = useCallback(
+    async (stepIndex: number) => {
+      const payloadCore = { ...draftPayload };
+      const payloadFingerprint = JSON.stringify(payloadCore);
+      const payload: Record<string, any> = {
+        ...payloadCore,
+      };
+
+      const currentDraftId = activeDraftIdRef.current;
+
+      // If user is moving through previously-saved steps without any edits, skip save.
+      if (
+        currentDraftId &&
+        payloadFingerprint === lastSavedFingerprintRef.current &&
+        stepIndex <= lastSavedStepIndexRef.current
+      ) {
+        return;
+      }
+
+      // While initial draft create request is pending, don't enqueue extra saves.
+      if (!currentDraftId && isDraftCreateInFlightRef.current) {
+        return;
+      }
+
+      const effectiveStepIndex = currentDraftId
+        ? Math.max(stepIndex, lastSavedStepIndexRef.current)
+        : stepIndex;
+
+      payload.currentStep = effectiveStepIndex;
+      payload.currentStepKey = STEPS[effectiveStepIndex]?.id || 'contact';
+
+      if (currentDraftId) {
+        payload.draftId = currentDraftId;
+      } else {
+        // Create at most one draft while id is still being resolved.
+        payload.createNew = !isDraftCreateInFlightRef.current;
+      }
+
+      if (payload.createNew) {
+        isDraftCreateInFlightRef.current = true;
+      }
+
+      const response = await saveDraftServiceRequest(payload);
+      if (response.error) {
+        if (payload.createNew) {
+          isDraftCreateInFlightRef.current = false;
+        }
+        return;
+      }
+
+      const savedDraft = response.data?.draft || response.data?.data?.draft;
+      const savedDraftId =
+        resolveDraftId(savedDraft) ||
+        resolveDraftId((response.data as any)?.data) ||
+        ((response.data as any)?.draftId as string | undefined) ||
+        null;
+
+      const savedStepRaw = Number(savedDraft?.currentStep);
+      const savedStep = Number.isFinite(savedStepRaw) ? savedStepRaw : effectiveStepIndex;
+      lastSavedStepIndexRef.current = Math.max(lastSavedStepIndexRef.current, savedStep);
+      lastSavedFingerprintRef.current = payloadFingerprint;
+
+      if (savedDraftId) {
+        setResolvedDraftId(savedDraftId);
+        isDraftCreateInFlightRef.current = false;
+      } else if (payload.createNew) {
+        isDraftCreateInFlightRef.current = false;
+      }
+    },
+    [draftPayload, setResolvedDraftId]
+  );
+
+  const hydrateFormDataFromDraft = useCallback((draft: DraftServiceRequest) => {
+    const selectedProblem =
+      typeof draft.selectedProblem === 'string'
+        ? (() => {
+            try {
+              return JSON.parse(draft.selectedProblem);
+            } catch {
+              return {};
+            }
+          })()
+        : draft.selectedProblem || {};
+
+    setFormData((prev) => ({
+      ...prev,
+      requestType: draft.requestType || prev.requestType,
+      serviceType: draft.serviceType || prev.serviceType,
+      userName: draft.userName || prev.userName,
+      userPhone: draft.userPhone || prev.userPhone,
+      beneficiaryName: draft.beneficiaryName || prev.beneficiaryName,
+      beneficiaryPhone: draft.beneficiaryPhone || prev.beneficiaryPhone,
+      knowsProblem:
+        typeof draft.knowsProblem === 'boolean' ? draft.knowsProblem : prev.knowsProblem,
+      problemType: draft.problemType || prev.problemType,
+      issueLevel: draft.issueLevel || prev.issueLevel,
+      problemDescription: draft.problemDescription || prev.problemDescription,
+      urgencyLevel:
+        draft.urgency === 'urgent'
+          ? 'urgent'
+          : draft.urgency === 'express'
+          ? 'express'
+          : prev.urgencyLevel,
+      dataSafety:
+        typeof draft.wantsDataSafety === 'boolean' ? draft.wantsDataSafety : prev.dataSafety,
+      selectedDate: draft.selectedDate || prev.selectedDate,
+      selectedTimeSlot: draft.selectedTimeSlot || prev.selectedTimeSlot,
+      preferredDate: draft.preferredDate || prev.preferredDate,
+      preferredTime: draft.preferredTime || prev.preferredTime,
+      address: draft.address || prev.address,
+      latitude:
+        draft.location?.lat ||
+        draft.location?.latitude ||
+        draft.latitude ||
+        prev.latitude,
+      longitude:
+        draft.location?.lng ||
+        draft.location?.longitude ||
+        draft.longitude ||
+        prev.longitude,
+      city: draft.city || prev.city,
+      brand: draft.brand || prev.brand,
+      model: draft.model || prev.model,
+      selectedBrand: draft.brand || prev.selectedBrand,
+      selectedModel: draft.model || prev.selectedModel,
+      mainProblem: selectedProblem?.mainProblem || prev.mainProblem,
+      subProblem: selectedProblem?.subProblem || prev.subProblem,
+      relationalBehaviors:
+        selectedProblem?.relationalBehaviors || prev.relationalBehaviors,
+    }));
+    setAddressQuery(draft.address || '');
+  }, []);
+
+  useEffect(() => {
+    if (!draftIdFromRoute) {
+      setResolvedDraftId(null);
+      isDraftCreateInFlightRef.current = false;
+      lastSavedFingerprintRef.current = null;
+      lastSavedStepIndexRef.current = -1;
+      setInitialStepName('Contact');
+      setIsLoadingDraft(false);
+      return;
+    }
+
+    const loadDraftById = async () => {
+      setIsLoadingDraft(true);
+      const response = await getDraftServiceRequestById(draftIdFromRoute);
+      const draft = response.data?.draft || response.data?.data?.draft;
+      if (draft) {
+        hydrateFormDataFromDraft(draft);
+        setInitialStepName(resolveDraftStepScreen(draft));
+        const loadedDraftId = resolveDraftId(draft) || draftIdFromRoute;
+        setResolvedDraftId(loadedDraftId);
+        const loadedStepRaw = Number(draft.currentStep);
+        lastSavedStepIndexRef.current = Number.isFinite(loadedStepRaw)
+          ? loadedStepRaw
+          : STACK_STEP_NAMES.indexOf(resolveDraftStepScreen(draft));
+        isDraftCreateInFlightRef.current = false;
+      }
+      setIsLoadingDraft(false);
+    };
+
+    loadDraftById();
+  }, [draftIdFromRoute, hydrateFormDataFromDraft, setResolvedDraftId]);
+
+  // Seed fingerprint after draft hydration so unchanged back/forward navigation doesn't resave.
+  useEffect(() => {
+    if (!activeDraftIdRef.current || isLoadingDraft) {
+      return;
+    }
+    if (!lastSavedFingerprintRef.current) {
+      lastSavedFingerprintRef.current = JSON.stringify(draftPayload);
+    }
+  }, [draftPayload, isLoadingDraft]);
 
 
 
@@ -305,15 +628,6 @@ export function ServiceRequestStack({
     
        
     
-      // Pricing calculation (mock)
-      const calculatePricing = () => {
-        return {
-          finalChargeRange: { min: 500, max: 1500 }
-        };
-      };
-    
-      const calculatedPricing = calculatePricing();
-
     // Helper functions
       const updateFormData = useCallback((field: keyof FormData, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -350,14 +664,19 @@ export function ServiceRequestStack({
       }
     };
 
-    const getBrandModels = async () => {
+    const getBrandModels = async (brandOverride?: string) => {
+      const brandToFetch = (brandOverride || formData.brand || '').trim();
+      if (!brandToFetch) {
+        return;
+      }
+
       try {
         setLoading(true);
         const response = await request<ApiResponse<any>>(
           `/models`,
           {
             method: 'POST',
-            body: {device: 'laptop', brand: formData.brand},
+            body: {device: 'laptop', brand: brandToFetch},
             headers: {
               'Content-Type': 'application/json',
             },
@@ -381,6 +700,29 @@ export function ServiceRequestStack({
         setLoading(false);
       }
     }
+
+    // When reopening a draft directly on Model (or later), preload dependencies.
+    useEffect(() => {
+      if (!draftIdFromRoute || isLoadingDraft) {
+        return;
+      }
+
+      const stepIndex = STACK_STEP_NAMES.indexOf(initialStepName);
+      if (stepIndex >= 1 && brands.length === 0) {
+        void getAllBrands();
+      }
+
+      if (stepIndex >= 2 && models.length === 0 && formData.brand) {
+        void getBrandModels(formData.brand);
+      }
+    }, [
+      brands.length,
+      draftIdFromRoute,
+      formData.brand,
+      initialStepName,
+      isLoadingDraft,
+      models.length,
+    ]);
 
 
   // Location permission and geolocation
@@ -639,20 +981,30 @@ export function ServiceRequestStack({
   };
 
 
-  const nextStep = (currentNavigation: any) => {
+  const nextStep = async (currentNavigation: any) => {
     const currentRoute = currentNavigation.getState();
     const stepIndex = getStepIndex(currentRoute.routes[currentRoute.index].name);
     if (validateCurrentStep(stepIndex)) {
+        const nextStepName = getNextStepName(stepIndex);
+        const nextStepIndex = Math.min(STEPS.length - 1, stepIndex + 1);
+
+        // Persist the step the user is moving to, so edit resumes on that step.
+        void saveDraftProgress(nextStepIndex).catch((draftError) => {
+          console.warn('Draft save failed:', draftError);
+        });
         if (stepIndex === 0) {
-          getAllBrands();
+          void getAllBrands();
         }
         if (stepIndex === 1) {
-          getBrandModels();
+          void getBrandModels(formData.brand);
         }
-        
-        const nextStepName = getNextStepName(stepIndex);
+
         if (nextStepName) {
-          currentNavigation.navigate(nextStepName);
+          if (typeof currentNavigation.replace === 'function') {
+            currentNavigation.replace(nextStepName);
+          } else {
+            currentNavigation.navigate(nextStepName);
+          }
         }
 
         setSearchQuery("");
@@ -663,6 +1015,21 @@ export function ServiceRequestStack({
 
   const prevStep = (currentNavigation: any) => {
     setSearchQuery("");
+    const currentRoute = currentNavigation.getState();
+    const stepIndex = getStepIndex(currentRoute.routes[currentRoute.index].name);
+
+    if (stepIndex > 0) {
+      const previousStepName = getStepNameByIndex(stepIndex - 1);
+      if (previousStepName) {
+        if (typeof currentNavigation.replace === 'function') {
+          currentNavigation.replace(previousStepName);
+        } else {
+          currentNavigation.navigate(previousStepName);
+        }
+        return;
+      }
+    }
+
     if (currentNavigation.canGoBack()) {
       currentNavigation.goBack();
     }
@@ -710,6 +1077,8 @@ export function ServiceRequestStack({
       setError(null);
   
       try {
+        const finalStepIndex = STEPS.length - 1;
+        await saveDraftProgress(finalStepIndex);
             const token = await getStoredToken();
             const formDataObj = new FormData();
             // Create FormData object
@@ -758,8 +1127,17 @@ export function ServiceRequestStack({
       }
     };
 
+  if (isLoadingDraft) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <Text style={{ color: colors.foreground }}>Loading draft...</Text>
+      </View>
+    );
+  }
+
   return (
     <Stack.Navigator
+      initialRouteName={initialStepName}
       screenOptions={{
         headerShown: false,
       }}
@@ -767,7 +1145,7 @@ export function ServiceRequestStack({
       <Stack.Screen name="Contact">
         {(props) => (
           <View style={{ flex: 1 }}>
-            <StepHeader navigation={props.navigation} routeName="Contact" />
+            <StepHeader onClose={handleCloseFlow} routeName="Contact" />
             <ContactStepScreen
               {...props}
               formData={formData}
@@ -800,7 +1178,7 @@ export function ServiceRequestStack({
       <Stack.Screen name="Brand">
         {(props) => (
           <View style={{ flex: 1 }}>
-            <StepHeader navigation={props.navigation} routeName="Brand" />
+            <StepHeader onClose={handleCloseFlow} routeName="Brand" />
             <BrandStepScreen
               {...props}
               formData={formData}
@@ -829,7 +1207,7 @@ export function ServiceRequestStack({
       <Stack.Screen name="Model">
         {(props) => (
           <View style={{ flex: 1 }}>
-            <StepHeader navigation={props.navigation} routeName="Model" />
+            <StepHeader onClose={handleCloseFlow} routeName="Model" />
             <ModelStepScreen
               {...props}
               formData={formData}
@@ -856,7 +1234,7 @@ export function ServiceRequestStack({
       <Stack.Screen name="Problem">
         {(props) => (
           <View style={{ flex: 1 }}>
-            <StepHeader navigation={props.navigation} routeName="Problem" />
+            <StepHeader onClose={handleCloseFlow} routeName="Problem" />
             <ProblemStepScreen
               {...props}
               formData={formData}
@@ -880,7 +1258,7 @@ export function ServiceRequestStack({
       <Stack.Screen name="DateTime">
         {(props) => (
           <View style={{ flex: 1 }}>
-            <StepHeader navigation={props.navigation} routeName="DateTime" />
+            <StepHeader onClose={handleCloseFlow} routeName="DateTime" />
             <DateTimeStepScreen
               {...props}
               formData={formData}
@@ -904,7 +1282,7 @@ export function ServiceRequestStack({
       <Stack.Screen name="Images">
         {(props) => (
           <View style={{ flex: 1 }}>
-            <StepHeader navigation={props.navigation} routeName="Images" />
+            <StepHeader onClose={handleCloseFlow} routeName="Images" />
             <ImagesStepScreen
               {...props}
               formData={formData}
@@ -928,7 +1306,7 @@ export function ServiceRequestStack({
       <Stack.Screen name="Review">
         {(props) => (
           <View style={{ flex: 1 }}>
-            <StepHeader navigation={props.navigation} routeName="Review" />
+            <StepHeader onClose={handleCloseFlow} routeName="Review" />
             <ReviewStepScreen
               {...props}
               formData={formData}

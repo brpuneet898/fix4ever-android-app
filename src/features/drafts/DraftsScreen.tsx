@@ -1,55 +1,104 @@
-import React from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../core/theme';
 import { Button } from '../../core/components';
+import {
+  deleteDraftServiceRequest,
+  DraftServiceRequest,
+  getMyDraftServiceRequests,
+} from '../../core/api';
 
-const DRAFTS = [
-  {
-    id: '1',
-    title: 'iPhone Screen Repair',
-    deviceType: 'Smartphone',
-    issueType: 'Screen Repair',
-    brand: 'Apple',
-    model: 'iPhone 13',
-    description: 'Screen cracked after drop, needs replacement',
-    lastSaved: '2024-02-12 14:30',
-    completionPercentage: 80,
-  },
-  {
-    id: '2',
-    title: 'Laptop Keyboard Issue',
-    deviceType: 'Laptop',
-    issueType: 'Hardware Issue',
-    brand: 'Dell',
-    model: 'XPS 15',
-    description: 'Some keys not working properly',
-    lastSaved: '2024-02-11 16:45',
-    completionPercentage: 40,
-  },
-  {
-    id: '3',
-    title: 'Desktop Upgrade',
-    deviceType: 'Desktop',
-    issueType: 'Hardware Upgrade',
-    brand: 'Custom Build',
-    model: 'Gaming PC',
-    description: 'Need RAM and GPU upgrade',
-    lastSaved: '2024-02-10 09:20',
-    completionPercentage: 20,
-  },
-];
+type DraftCard = {
+  id: string;
+  title: string;
+  brand: string;
+  model: string;
+  issueType: string;
+  description: string;
+  completionPercentage: number;
+  lastSaved: string;
+};
+
+const STEP_COUNT = 7;
+
+const formatDateTime = (value?: string): string => {
+  if (!value) {
+    return 'Just now';
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleString('en-IN', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+const toDraftCard = (draft: DraftServiceRequest): DraftCard => {
+  const completedStep = typeof draft.currentStep === 'number' ? draft.currentStep + 1 : 0;
+  const completionPercentage = Math.max(
+    5,
+    Math.min(100, Math.round((completedStep / STEP_COUNT) * 100))
+  );
+  const titleParts = [draft.brand, draft.model].filter(Boolean);
+  const title = draft.title || (titleParts.length ? titleParts.join(' ') : 'Untitled Draft');
+
+  return {
+    id: draft._id || draft.id || '',
+    title,
+    brand: draft.brand || '-',
+    model: draft.model || '-',
+    issueType: draft.problemType || 'Not specified',
+    description: draft.problemDescription || 'No description yet',
+    completionPercentage,
+    lastSaved: formatDateTime(draft.updatedAt || draft.createdAt),
+  };
+};
 
 export function DraftsScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
   const { colors, spacing, typography } = useTheme();
+  const [drafts, setDrafts] = useState<DraftCard[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadDrafts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await getMyDraftServiceRequests();
+      const rows = response.data?.drafts || response.data?.data?.drafts || [];
+      const mapped = Array.isArray(rows)
+        ? rows.map(toDraftCard).filter((row) => Boolean(row.id))
+        : [];
+      setDrafts(mapped);
+    } catch {
+      setDrafts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadDrafts();
+    }, [loadDrafts])
+  );
 
   const getCompletionColor = (percentage: number) => {
     if (percentage >= 75) return colors.success;
@@ -210,21 +259,47 @@ export function DraftsScreen() {
   });
 
   const handleEditDraft = (draftId: string) => {
-    console.log('Edit draft:', draftId);
-    // TODO: Navigate to create request screen with draft data
+    if (typeof navigation.push === 'function') {
+      navigation.push('ServiceRequestStack', { draftId });
+      return;
+    }
+    navigation.navigate('ServiceRequestStack', { draftId });
   };
 
   const handleDeleteDraft = (draftId: string) => {
-    console.log('Delete draft:', draftId);
-    // TODO: Show confirmation dialog and delete draft
+    Alert.alert('Delete Draft', 'Are you sure you want to delete this draft?', [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          const response = await deleteDraftServiceRequest(draftId);
+          if (response.data?.success) {
+            setDrafts((prev) => prev.filter((draft) => draft.id !== draftId));
+            return;
+          }
+          Alert.alert('Error', response.error?.message || 'Failed to delete draft');
+        },
+      },
+    ]);
   };
+
+  const subtitle = useMemo(() => {
+    if (loading) {
+      return 'Loading your saved drafts...';
+    }
+    return 'Continue working on your saved requests';
+  }, [loading]);
 
   return (
     <SafeAreaProvider>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>Drafts</Text>
-          <Text style={styles.subtitle}>Continue working on your saved requests</Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
 
         <View style={styles.createButton}>
@@ -232,13 +307,12 @@ export function DraftsScreen() {
             title="Create New Request"
             variant="outline"
             onPress={() => {
-              // TODO: Navigate to create request screen
-              console.log('Create new request');
+              navigation.navigate('ServiceRequestStack');
             }}
           />
         </View>
 
-        {DRAFTS.length === 0 ? (
+        {drafts.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>No Drafts</Text>
             <Text style={styles.emptySubtitle}>
@@ -246,7 +320,7 @@ export function DraftsScreen() {
             </Text>
           </View>
         ) : (
-          DRAFTS.map((draft) => (
+          drafts.map((draft) => (
             <TouchableOpacity key={draft.id} style={styles.draftCard}>
               <View style={styles.draftHeader}>
                 <Text style={styles.draftTitle}>{draft.title}</Text>

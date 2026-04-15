@@ -136,7 +136,11 @@ export function ModelStepScreen({
   const renderItem = useCallback(({ item }: any) => (
     <ModelItem 
       item={item}
-      isSelected={formData.selectedModel === item.id}
+      isSelected={
+        formData.selectedModel === item.id ||
+        formData.selectedModel === item.name ||
+        formData.model === item.name
+      }
       itemStyles={itemStyles}
       spacing={spacing}
       colors={colors}

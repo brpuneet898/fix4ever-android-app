@@ -8,3 +8,4 @@ export {
   setAuth,
   clearAuth,
 } from './authStorage';
+export { getStoredSessionId, getOrCreateSessionId } from './sessionStorage';
