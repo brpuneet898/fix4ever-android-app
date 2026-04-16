@@ -172,7 +172,7 @@ export function BrandStepScreen({
               key={brand.id}
               style={[
                 styles.brandItem,
-                formData.selectedBrand === brand.name && styles.brandItemSelected,
+                (formData.selectedBrand === brand.name || formData.selectedBrand === brand.id) && styles.brandItemSelected,
               ]}
               onPress={() => {
                 console.log('Brand clicked:', brand.name, 'ID:', brand.id);
@@ -205,7 +205,7 @@ export function BrandStepScreen({
               )}
               <Text style={[
                 styles.brandName,
-                formData.selectedBrand === brand.id && styles.brandNameSelected,
+                (formData.selectedBrand === brand.name || formData.selectedBrand === brand.id) && styles.brandNameSelected,
               ]}>
                 {brand.name.toUpperCase()}
               </Text>

@@ -41,6 +41,8 @@ export function ProblemStepScreen({
 }: ProblemStepScreenProps) {
   const { colors, spacing, typography } = useTheme();
 
+  const hasMainProblem = Boolean(formData.mainProblem?.id || formData.mainProblem?.title);
+
   const [mainProblemCategories, setMainProblemCategories] = useState([]);
 
   const [isMainProblemSelected, setIsMainProblemSelected] = useState(false);
@@ -146,14 +148,13 @@ export function ProblemStepScreen({
     getMainProblemCategories();
   }, []);
 
-  useEffect(()=>{
-    if (isMainProblemSelected) {
-      getSubProblemCategories();
-      updateFormData("subProblem", {})
-      getAllBehaviors()
-      updateFormData("relationalBehaviors", [])
+  useEffect(() => {
+    if (!formData.mainProblem?.id) {
+      return;
     }
-  },[isMainProblemSelected, setIsMainProblemSelected, formData.mainProblem])
+    getSubProblemCategories();
+    getAllBehaviors();
+  }, [formData.mainProblem?.id]);
 
   const selectedLabel = useMemo(() => 
     formData.mainProblem.title || 'Select Problem Type',
@@ -295,7 +296,7 @@ export function ProblemStepScreen({
             </>
           )}
 
-        {formData.knowsProblem && isMainProblemSelected && (
+        {formData.knowsProblem && hasMainProblem && (
           <>
             <Text style={styles.sectionTitle}>Problem Sub-category</Text>
             <TouchableOpacity 

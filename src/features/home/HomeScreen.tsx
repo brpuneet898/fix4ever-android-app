@@ -109,7 +109,7 @@ type MainTabParamList = {
 export type RootStackParamList = {
   Main: undefined;
   Auth: { screen: 'Login' | 'Signup' | 'Account' | 'ResetPassword' | 'GoogleOAuth' };
-  ServiceRequestStack: undefined;
+  ServiceRequestStack: { draftId?: string } | undefined;
   ServiceRequestDetails: { requestId: string };
   CreateServiceRequestScreen: undefined;
 };
