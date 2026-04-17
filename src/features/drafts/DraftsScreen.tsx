@@ -51,13 +51,13 @@ const formatDateTime = (value?: string): string => {
 };
 
 const toDraftCard = (draft: DraftServiceRequest): DraftCard => {
-  const backendCompletion = Number(draft.completionPercentage);
-  const completionPercentage = Number.isFinite(backendCompletion)
-    ? Math.max(0, Math.min(100, Math.round(backendCompletion)))
-    : (() => {
-        const completedStep = typeof draft.currentStep === 'number' ? draft.currentStep + 1 : 0;
-        return Math.max(0, Math.min(100, Math.round((completedStep / STEP_COUNT) * 100)));
-      })();
+  const currentStep = typeof draft.currentStep === 'number' ? draft.currentStep : 0;
+  // We have 7 steps in total. currentStep is the index (0 to 6).
+  // Each step represents work completed when moving to the next step.
+  const completionPercentage = Math.max(
+    0,
+    Math.min(100, Math.round((currentStep / STEP_COUNT) * 100))
+  );
   const titleParts = [draft.brand, draft.model].filter(Boolean);
   const title = draft.title || (titleParts.length ? titleParts.join(' ') : 'Untitled Draft');
 
@@ -293,8 +293,11 @@ export function DraftsScreen() {
     if (loading) {
       return 'Loading your saved drafts...';
     }
+    if (drafts.length > 0) {
+      return 'Drafts automatically expire after 7 days';
+    }
     return 'Continue working on your saved requests';
-  }, [loading]);
+  }, [drafts.length, loading]);
 
   return (
     <SafeAreaProvider>
