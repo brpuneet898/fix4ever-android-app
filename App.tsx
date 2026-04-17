@@ -188,7 +188,7 @@ function AppNavigator() {
     ...(isDark ? DarkTheme : DefaultTheme),
     colors: {
       ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
-      background: (isDark && currentRouteName === 'Account') ? '#242D3B' : colors.background,
+      background: (isDark && (currentRouteName === 'Account' || currentRouteName === 'Login')) ? '#242D3B' : colors.background,
     },
   };
 

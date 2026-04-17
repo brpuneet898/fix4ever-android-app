@@ -52,10 +52,14 @@ export default function AuthStack({ route }: { route: { params?: { screen?: stri
                 },
             }}
         >
-            <Stack.Screen name="Login">
+            <Stack.Screen
+                name="Login"
+                options={{
+                    title: 'fix4ever',
+                }}
+            >
                 {(props) => (
                     <LoginScreen
-                        onBack={() => props.navigation.goBack()}
                         onSuccess={async (token, user) => {
                             // Handle successful login
                             console.log('Login successful', { token, user });
