@@ -12,6 +12,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import { request } from '../../core/api';
 import { useRoute } from '@react-navigation/native';
 import Geolocation from '@react-native-community/geolocation';
+import RNAndroidLocationEnabler from 'react-native-android-location-enabler';
 import axios from 'axios';
 import Config from 'react-native-config';
 
@@ -824,6 +825,19 @@ export function ServiceRequestStack({
         setLocationError('Location permission denied');
         setIsGettingLocation(false);
         return;
+      }
+
+      if (Platform.OS === 'android') {
+        try {
+          await RNAndroidLocationEnabler.promptForEnableLocationIfNeeded({
+            interval: 10000,
+            fastInterval: 5000,
+          });
+        } catch (enableLocationError: any) {
+          setLocationError('Please turn on location services to continue');
+          setIsGettingLocation(false);
+          return;
+        }
       }
 
       // Configure geolocation settings for better reliability
