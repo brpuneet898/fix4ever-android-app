@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../core/theme';
-import Icon from 'react-native-vector-icons/Feather';
+import MobileLaptop from '../../assets/icons/mobile-laptop.svg';
 import { useAuth } from '../../lib/contexts/auth-context';
 
 type AccountScreenProps = {
@@ -19,27 +19,30 @@ const fonts = {
 export function AccountScreen({ onLogout }: AccountScreenProps) {
   const insets = useSafeAreaInsets();
   const { colors, spacing, isDark } = useTheme();
-  const {user } = useAuth();
+  const { user } = useAuth();
 
-  const profileCardColor = isDark ? '#08244A' : '#043063';
-  const pageSubtle = isDark ? colors.textMuted : '#2E2E2E';
+  const profileCardColor = isDark ? '#1C3D63' : '#01325d';
+  const pageSubtle = isDark ? '#B9C6DA' : '#2E2E2E';
+  const buttonBgColor = isDark ? '#2B5F91' : profileCardColor;
+  const containerBg = isDark ? '#242D3B' : colors.background;
+  const titleColor = isDark ? '#F3F7FF' : '#082c50';
+  const labelColor = isDark ? '#D4E0F0' : '#D8E2F0';
 
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: containerBg,
     },
     content: {
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.md,
-      paddingBottom: insets.bottom + spacing.xl,
+      paddingBottom: Math.max(insets.bottom + spacing.xl, spacing.xxl),
       alignItems: 'center',
     },
     logoCircle: {
       width: 130,
       height: 130,
       borderRadius: 65,
-      backgroundColor: profileCardColor,
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: spacing.lg,
@@ -49,18 +52,31 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
       shadowOffset: { width: 0, height: 5 },
       elevation: 6,
     },
+    logoClip: {
+      width: 130,
+      height: 130,
+      borderRadius: 65,
+      overflow: 'hidden',
+      backgroundColor: profileCardColor,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     logoText: {
       fontSize: 58,
       color: '#FFFFFF',
       letterSpacing: -2.3,
       fontFamily: fonts.bold,
     },
+    logoIcon: {
+      width: 120,
+      height: 120,
+    },
     title: {
       fontSize: 48,
       lineHeight: 48,
       letterSpacing: -2.4,
       fontFamily: fonts.bold,
-      color: isDark ? colors.foreground : '#082c50',
+      color: titleColor,
       marginBottom: 4,
     },
     subtitle: {
@@ -86,12 +102,13 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
       shadowOffset: { width: 0, height: 8 },
       elevation: 7,
       justifyContent: 'center',
+      overflow: 'hidden',
     },
     row: { marginBottom: 22 },
     label: {
       fontSize: 15,
       lineHeight: 20,
-      color: '#D8E2F0',
+      color: labelColor,
       fontFamily: fonts.medium,
       marginBottom: 6,
     },
@@ -104,7 +121,7 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
     logoutButton: {
       width: 336,
       height: 52,
-      backgroundColor: profileCardColor,
+      backgroundColor: buttonBgColor,
       borderRadius: 16,
       alignItems: 'center',
       justifyContent: 'center',
@@ -126,25 +143,7 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
       width: '100%',
       alignItems: 'center',
       marginTop: spacing.xs,
-      opacity: isDark ? 0.45 : 0.7,
-    },
-    illustrationCloud: {
-      width: 250,
-      height: 100,
-      borderRadius: 50,
-      backgroundColor: isDark ? '#1B2E48' : '#E8F0FA',
-      position: 'absolute',
-      bottom: 0,
-    },
-    deviceRow: {
-      width: 228,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-end',
-      paddingBottom: 14,
-    },
-    deviceColor: {
-      color: isDark ? '#B9C7D8' : '#AAB8C8',
+      opacity: 0.7,
     },
   });
 
@@ -155,7 +154,13 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.logoCircle}>
-          <Text style={styles.logoText}>fx</Text>
+          <View style={styles.logoClip}>
+            <Image
+              source={require('../../assets/icons/blue-icon.png')}
+              style={styles.logoIcon}
+              resizeMode="contain"
+            />
+          </View>
         </View>
         <Text style={styles.title}>Account</Text>
         <Text style={styles.subtitle}>Your personal details</Text>
@@ -179,11 +184,7 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
           <Text style={styles.logoutText}>Log out</Text>
         </TouchableOpacity>
         <View style={styles.illustrationWrap}>
-          <View style={styles.illustrationCloud} />
-          <View style={styles.deviceRow}>
-            <Icon name="smartphone" size={48} style={styles.deviceColor} />
-            <Icon name="monitor" size={90} style={styles.deviceColor} />
-          </View>
+          <MobileLaptop width={600} height={200} />
         </View>
       </ScrollView>
     </View>
