@@ -40,7 +40,6 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
       backgroundColor: colors.card,
       paddingBottom: insets.bottom,
       paddingTop: 8,
-      marginBottom: 5,
       borderTopWidth: 1,
       borderTopColor: colors.border
     }}>
@@ -193,11 +192,23 @@ function MainTabs() {
 }
 
 export default function NavigationTab() {
+    const { colors, isDark } = useTheme();
+
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Main" component={MainTabs}  />
+            <Stack.Screen name="Main" component={MainTabs} options={{ navigationBarColor: colors.card }} />
             <Stack.Screen name="ServiceRequestDetails" component={ServiceRequestDetailsScreen} options={{ headerShown: false}} />
-            <Stack.Screen name="Auth" component={AuthStack} options={{ headerShown: false}} />
+            <Stack.Screen 
+                name="Auth" 
+                component={AuthStack} 
+                options={({ route }) => {
+                    const routeName = getFocusedRouteNameFromRoute(route) ?? 'Login';
+                    return {
+                        headerShown: false,
+                        navigationBarColor: routeName === 'Account' ? (isDark ? '#242D3B' : colors.background) : colors.background,
+                    };
+                }}
+            />
             <Stack.Screen name="CreateServiceRequestScreen" component={CreateServiceRequestScreen} options={{ headerShown: false }} />
             <Stack.Screen name="ServiceRequestStack" component={ServiceRequestStack} options={{ headerShown: false }} />        
         </Stack.Navigator>

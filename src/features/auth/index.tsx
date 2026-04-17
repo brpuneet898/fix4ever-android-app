@@ -17,33 +17,49 @@ import { SignupScreen } from './SignupScreen';
 import { AccountScreen } from './AccountScreen';
 import { ResetPasswordScreen } from './ResetPasswordScreen';
 import { GoogleOAuthScreen } from './GoogleOAuthScreen';
+import { ThemeSelector } from '../../core/components';
+import { useTheme } from '../../core/theme';
 
 
 const Stack = createNativeStackNavigator();
 
 export default function AuthStack({ route }: { route: { params?: { screen?: string } } }) {
     const initialScreen = route.params?.screen || 'Login';
+    const { colors, isDark } = useTheme();
 
-    const { user, setUser, logout } = useAuth();
+    const { setUser } = useAuth();
 
       const handleLoginSuccess = async (token: string, user: User) => {
         await setAuth(token, user);
         setUser(user);
       };
     
-      const handleLogout = () => {
-        logout().catch(() => {});
-        clearAuth();
-        setUser(null);
-      };
-    
-    
+
     return (
-        <Stack.Navigator initialRouteName={initialScreen}>
-            <Stack.Screen name="Login">
+        <Stack.Navigator
+            initialRouteName={initialScreen}
+            screenOptions={{
+                headerStyle: {
+                    backgroundColor: colors.background,
+                },
+                headerTintColor: colors.foreground,
+                headerTitleStyle: {
+                    color: colors.foreground,
+                },
+                headerShadowVisible: !isDark,
+                contentStyle: {
+                    backgroundColor: colors.background,
+                },
+            }}
+        >
+            <Stack.Screen
+                name="Login"
+                options={{
+                    title: 'fix4ever',
+                }}
+            >
                 {(props) => (
                     <LoginScreen
-                        onBack={() => props.navigation.goBack()}
                         onSuccess={async (token, user) => {
                             // Handle successful login
                             console.log('Login successful', { token, user });
@@ -75,7 +91,16 @@ export default function AuthStack({ route }: { route: { params?: { screen?: stri
                     />
                 )}
             </Stack.Screen>
-            <Stack.Screen name="Account">
+            <Stack.Screen
+                name="Account"
+                options={{
+                    headerRight: () => <ThemeSelector isCompact={true} />,
+                    contentStyle: {
+                        backgroundColor: isDark ? '#242D3B' : colors.background,
+                    },
+                    navigationBarColor: isDark ? '#242D3B' : colors.background,
+                }}
+            >
                 {(props) => (
                     <AccountScreen
                         onLogout={async () => {

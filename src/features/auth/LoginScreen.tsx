@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../core/theme';
@@ -15,28 +16,43 @@ import { useAutoOtp } from '../../core/hooks';
 import { getEmailError } from '../../core/utils';
 import { sendLoginOtp, login } from '../../core/api';
 import type { User } from '../../core/api';
+import MobileLaptop from '../../assets/icons/mobile-laptop.svg';
 
 type LoginScreenProps = {
-  onBack: () => void;
   onSuccess: (token: string, user: User) => void;
   onForgotPassword?: () => void;
   onGooglePress?: () => void;
 };
 
 export function LoginScreen({
-  onBack,
   onSuccess,
   onForgotPassword,
   onGooglePress,
 }: LoginScreenProps) {
   const insets = useSafeAreaInsets();
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, isDark } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const fonts = {
+    regular: 'Montserrat-Regular',
+    medium: 'Montserrat-Medium',
+    semibold: 'Montserrat-SemiBold',
+    bold: 'Montserrat-Bold',
+  } as const;
+
+  const primaryBlue = isDark ? '#1C4E7E' : '#01325D';
+  const screenBg = isDark ? '#242D3B' : '#FFFFFF';
+  const headingColor = isDark ? '#F3F7FF' : '#082C50';
+  const labelColor = isDark ? '#D5E1F1' : '#082C50';
+  const mutedText = isDark ? '#D0D8E5' : '#3A3A3A';
+  const inputBg = isDark ? '#2D394A' : '#FFFFFF';
+  const inputBorder = isDark ? '#5A6A82' : '#B7BEC8';
+  const dividerColor = isDark ? '#66778F' : '#D6D6D6';
 
   useAutoOtp({
     enabled: otpSent,
@@ -109,74 +125,216 @@ export function LoginScreen({
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: screenBg,
     },
     scroll: { flex: 1 },
     scrollContent: {
       paddingHorizontal: spacing.lg,
-      paddingTop: insets.top + spacing.lg,
-      paddingBottom: insets.bottom + spacing.xxl,
-    },
-    header: {
-      flexDirection: 'row',
+      paddingTop: insets.top + spacing.sm,
+      paddingBottom: insets.bottom + spacing.lg,
       alignItems: 'center',
-      marginBottom: spacing.xl,
     },
-    backBtn: { padding: spacing.sm, marginLeft: -spacing.sm },
-    backText: { ...typography.label, color: colors.primary },
+    logoCircle: {
+      width: 118,
+      height: 118,
+      borderRadius: 59,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.lg,
+      shadowColor: '#000000',
+      shadowOpacity: 0.24,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 6,
+    },
+    logoClip: {
+      width: 118,
+      height: 118,
+      borderRadius: 59,
+      overflow: 'hidden',
+      backgroundColor: primaryBlue,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    logoImage: {
+      width: 150,
+      height: 150,
+    },
     title: {
-      ...typography.title,
-      color: colors.foreground,
+      fontSize: 42,
+      lineHeight: 52,
+      letterSpacing: -1.2,
+      fontFamily: fonts.bold,
+      color: headingColor,
       marginBottom: spacing.sm,
+      textAlign: 'center',
     },
     subtitle: {
-      ...typography.bodySmall,
-      color: colors.mutedForeground,
+      fontSize: 16,
+      lineHeight: 20,
+      letterSpacing: -0.08,
+      color: mutedText,
+      fontFamily: fonts.medium,
       marginBottom: spacing.xl,
+      textAlign: 'center',
+      maxWidth: 320,
     },
-    form: { marginBottom: spacing.lg },
-    otpSentNote: {
-      ...typography.caption,
-      color: colors.primary,
+    form: {
       marginBottom: spacing.md,
+      alignSelf: 'stretch',
+      width: '100%',
+      maxWidth: 360,
+    },
+    inputContainer: {
+      marginBottom: spacing.md,
+    },
+    inputLabel: {
+      fontSize: 15,
+      lineHeight: 20,
+      letterSpacing: 0,
+      color: labelColor,
+      fontFamily: fonts.medium,
+      marginBottom: 6,
+    },
+    textInput: {
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: inputBorder,
+      backgroundColor: inputBg,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      color: isDark ? '#FFFFFF' : '#1E1E1E',
+      fontFamily: fonts.medium,
+      fontSize: 16,
+    },
+    inputPlaceholder: {
+      color: isDark ? '#A5B4C8' : '#8A8A8A',
+    },
+    otpSentNote: {
+      color: isDark ? '#9BC7FF' : primaryBlue,
+      marginBottom: spacing.md,
+      fontFamily: fonts.medium,
+      fontSize: 14,
+      lineHeight: 18,
     },
     errorText: {
       color: colors.destructive,
       marginBottom: spacing.md,
       fontSize: 14,
+      fontFamily: fonts.medium,
     },
-    actions: { gap: spacing.md },
+    actions: {
+      gap: spacing.md,
+      alignSelf: 'stretch',
+      width: '100%',
+      maxWidth: 360,
+    },
+    primaryBtn: {
+      borderRadius: 10,
+      minHeight: 56,
+      backgroundColor: primaryBlue,
+      shadowColor: '#000000',
+      shadowOpacity: 0.14,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 3,
+    },
+    primaryBtnText: {
+      color: '#FFFFFF',
+      fontFamily: fonts.semibold,
+      fontSize: 16,
+      lineHeight: 18,
+    },
+    ghostBtn: {
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: primaryBlue,
+      minHeight: 52,
+    },
+    ghostBtnText: {
+      color: primaryBlue,
+      fontFamily: fonts.semibold,
+      fontSize: 16,
+      lineHeight: 18,
+    },
     dividerRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginTop: spacing.xl,
-      marginBottom: spacing.lg,
+      marginTop: spacing.lg,
+      marginBottom: spacing.md,
     },
     dividerLine: {
       flex: 1,
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.border,
+      height: 1,
+      backgroundColor: dividerColor,
     },
     dividerText: {
-      ...typography.caption,
-      color: colors.mutedForeground,
-      marginHorizontal: spacing.sm,
+      color: mutedText,
+      marginHorizontal: spacing.md,
+      fontFamily: fonts.medium,
+      fontSize: 16,
+      lineHeight: 20,
+      letterSpacing: 0,
     },
     socialButton: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: spacing.md,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: colors.border,
+      paddingVertical: 13,
+      borderRadius: 10,
+      backgroundColor: primaryBlue,
+      shadowColor: '#000000',
+      shadowOpacity: 0.18,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 4,
+      minHeight: 58,
+      zIndex: 2,
+      position: 'relative',
+    },
+    googleGlyph: {
+      color: '#FFFFFF',
+      fontFamily: fonts.bold,
+      fontSize: 24,
+      lineHeight: 28,
+      letterSpacing: -0.8,
+      marginRight: 10,
+      marginTop: -2,
     },
     socialText: {
-      ...typography.label,
-      color: colors.foreground,
+      color: '#FFFFFF',
+      fontSize: 16,
+      lineHeight: 20,
+      letterSpacing: 0,
+      fontFamily: fonts.medium,
     },
-    forgotLink: { marginTop: spacing.sm, alignSelf: 'center' },
-    forgotLinkText: { ...typography.caption, color: colors.primary },
+    forgotLink: {
+      marginTop: 2,
+      marginBottom: spacing.sm,
+      alignSelf: 'center',
+    },
+    forgotLinkText: {
+      color: headingColor,
+      fontFamily: fonts.medium,
+      fontSize: 16,
+      lineHeight: 20,
+      letterSpacing: 0,
+    },
+    googleSection: {
+      position: 'relative',
+      minHeight: 138,
+      justifyContent: 'flex-start',
+      paddingTop: spacing.xs,
+    },
+    illustrationBehind: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: -38,
+      alignItems: 'center',
+      opacity: isDark ? 0.42 : 0.58,
+      zIndex: 1,
+    },
   });
 
   return (
@@ -191,18 +349,19 @@ export function LoginScreen({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={onBack}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.backText}>← Back</Text>
-          </TouchableOpacity>
+        <View style={styles.logoCircle}>
+          <View style={styles.logoClip}>
+            <Image
+              source={require('../../assets/icons/blue-icon.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+          </View>
         </View>
+
         <Text style={styles.title}>Log in</Text>
         <Text style={styles.subtitle}>
-          Use your email and password. We'll send a one-time code to your email.
+          Log in for a lifetime of support for your devices.
         </Text>
 
         <View style={styles.form}>
@@ -214,7 +373,10 @@ export function LoginScreen({
             autoCapitalize="none"
             keyboardType="email-address"
             autoComplete="email"
-            // editable={!otpSent}
+            containerStyle={styles.inputContainer}
+            style={styles.textInput}
+            labelStyle={styles.inputLabel}
+            placeholderTextColor={styles.inputPlaceholder.color}
           />
           <Input
             label="Password"
@@ -223,7 +385,10 @@ export function LoginScreen({
             placeholder="••••••••"
             secureTextEntry
             autoComplete="password"
-            // editable={!otpSent}
+            containerStyle={styles.inputContainer}
+            style={styles.textInput}
+            labelStyle={styles.inputLabel}
+            placeholderTextColor={styles.inputPlaceholder.color}
           />
           {otpSent && (
             <>
@@ -240,6 +405,10 @@ export function LoginScreen({
                 maxLength={6}
                 textContentType="oneTimeCode"
                 autoComplete="one-time-code"
+                containerStyle={styles.inputContainer}
+                style={styles.textInput}
+                labelStyle={styles.inputLabel}
+                placeholderTextColor={styles.inputPlaceholder.color}
               />
             </>
           )}
@@ -253,6 +422,8 @@ export function LoginScreen({
               onPress={handleSendOtp}
               loading={loading}
               variant="primary"
+              style={styles.primaryBtn}
+              textStyle={styles.primaryBtnText}
             />
           ) : (
             <>
@@ -261,12 +432,16 @@ export function LoginScreen({
                 onPress={handleLogin}
                 loading={loading}
                 variant="primary"
+                style={styles.primaryBtn}
+                textStyle={styles.primaryBtnText}
               />
               <Button
                 title="Send OTP again"
                 onPress={handleSendOtp}
                 loading={loading}
                 variant="ghost"
+                style={styles.ghostBtn}
+                textStyle={styles.ghostBtnText}
               />
             </>
           )}
@@ -287,13 +462,19 @@ export function LoginScreen({
                 <Text style={styles.dividerText}>or</Text>
                 <View style={styles.dividerLine} />
               </View>
-              <TouchableOpacity
-                style={styles.socialButton}
-                onPress={onGooglePress}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.socialText}>Continue with Google</Text>
-              </TouchableOpacity>
+              <View style={styles.googleSection}>
+                <View style={styles.illustrationBehind} pointerEvents="none">
+                  <MobileLaptop width={600} height={190} />
+                </View>
+                <TouchableOpacity
+                  style={styles.socialButton}
+                  onPress={onGooglePress}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.googleGlyph}>G</Text>
+                  <Text style={styles.socialText}>Continue with Google</Text>
+                </TouchableOpacity>
+              </View>
             </>
           )}
         </View>

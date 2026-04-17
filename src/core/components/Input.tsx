@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TextInputProps,
   ViewStyle,
+  TextStyle,
 } from 'react-native';
 import { useTheme } from '../theme';
 
@@ -13,12 +14,14 @@ type InputProps = TextInputProps & {
   label?: string;
   error?: string;
   containerStyle?: ViewStyle;
+  labelStyle?: TextStyle;
 };
 
 export function Input({
   label,
   error,
   containerStyle,
+  labelStyle,
   style,
   placeholderTextColor,
   ...props
@@ -33,6 +36,7 @@ export function Input({
           style={[
             styles.label,
             { color: colors.foreground, marginBottom: spacing.xs },
+            labelStyle,
           ]}
         >
           {label}

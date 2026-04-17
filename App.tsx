@@ -10,7 +10,7 @@ import { View, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from './src/core/theme';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -167,13 +167,13 @@ const styles = StyleSheet.create({
 
 const Stack = createNativeStackNavigator(); 
   
-function App() {
+function AppNavigator() {
+  const { isDark, colors } = useTheme();
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(
     null
   );
-  // const [mounted, setMounted] = useState<boolean>(false);
+  const [currentRouteName, setCurrentRouteName] = useState<string>('');
 
-  
   useEffect(() => {
     let mounted = true;
     hasCompletedOnboarding().then(completed => {
@@ -184,22 +184,44 @@ function App() {
     };
   }, []);
 
+  const navigationTheme = {
+    ...(isDark ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
+      background: (isDark && (currentRouteName === 'Account' || currentRouteName === 'Login')) ? '#242D3B' : colors.background,
+    },
+  };
+
+  return (
+    <NavigationContainer 
+      theme={navigationTheme}
+      onStateChange={(state) => {
+        if (!state) return;
+        const getActiveRouteName = (routeState: any): string => {
+          const route = routeState.routes[routeState.index];
+          if (route.state) {
+            return getActiveRouteName(route.state);
+          }
+          return route.name;
+        };
+        setCurrentRouteName(getActiveRouteName(state));
+      }}
+    >
+      { !hasSeenOnboarding ? <AppContent /> : <TabNavigator /> }
+    </NavigationContainer>
+  );
+}
+
+function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>
-        <AuthProvider>
-          <SafeAreaProvider>
-            <ThemeProvider>
-              { !hasSeenOnboarding ? <AppContent /> :
-              <>
-                <Stack.Navigator>
-                  <Stack.Screen name="Root" component={TabNavigator} options={{ headerShown: false }} />
-                </Stack.Navigator>
-              </>}
-            </ThemeProvider>
-          </SafeAreaProvider>
-        </AuthProvider>
-      </NavigationContainer>
+      <AuthProvider>
+        <SafeAreaProvider>
+          <ThemeProvider>
+            <AppNavigator />
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </AuthProvider>
     </GestureHandlerRootView>
   );
 }
