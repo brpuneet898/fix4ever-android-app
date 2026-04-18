@@ -29,7 +29,6 @@ type DraftCard = {
   lastSaved: string;
 };
 
-const STEP_COUNT = 7;
 
 const formatDateTime = (value?: string): string => {
   if (!value) {
@@ -51,13 +50,8 @@ const formatDateTime = (value?: string): string => {
 };
 
 const toDraftCard = (draft: DraftServiceRequest): DraftCard => {
-  const backendCompletion = Number(draft.completionPercentage);
-  const completionPercentage = Number.isFinite(backendCompletion)
-    ? Math.max(0, Math.min(100, Math.round(backendCompletion)))
-    : (() => {
-        const completedStep = typeof draft.currentStep === 'number' ? draft.currentStep + 1 : 0;
-        return Math.max(0, Math.min(100, Math.round((completedStep / STEP_COUNT) * 100)));
-      })();
+  const serverCompletion = Number(draft.completionPercentage);
+  const completionPercentage = Math.max(0, Math.min(100, Math.round(serverCompletion)))
   const titleParts = [draft.brand, draft.model].filter(Boolean);
   const title = draft.title || (titleParts.length ? titleParts.join(' ') : 'Untitled Draft');
 
