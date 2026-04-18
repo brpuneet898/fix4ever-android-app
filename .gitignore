@@ -4,7 +4,7 @@ package-lock.json
 yarn.lock
 
 # Build output
-android/
+# android/
 ios/
 .expo/
 dist/
