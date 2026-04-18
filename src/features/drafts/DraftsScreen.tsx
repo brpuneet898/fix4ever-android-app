@@ -29,7 +29,6 @@ type DraftCard = {
   lastSaved: string;
 };
 
-const STEP_COUNT = 7;
 
 const formatDateTime = (value?: string): string => {
   if (!value) {
@@ -51,13 +50,8 @@ const formatDateTime = (value?: string): string => {
 };
 
 const toDraftCard = (draft: DraftServiceRequest): DraftCard => {
-  const currentStep = typeof draft.currentStep === 'number' ? draft.currentStep : 0;
-  // We have 7 steps in total. currentStep is the index (0 to 6).
-  // Each step represents work completed when moving to the next step.
-  const completionPercentage = Math.max(
-    0,
-    Math.min(100, Math.round((currentStep / STEP_COUNT) * 100))
-  );
+  const serverCompletion = Number(draft.completionPercentage);
+  const completionPercentage = Math.max(0, Math.min(100, Math.round(serverCompletion)))
   const titleParts = [draft.brand, draft.model].filter(Boolean);
   const title = draft.title || (titleParts.length ? titleParts.join(' ') : 'Untitled Draft');
 
