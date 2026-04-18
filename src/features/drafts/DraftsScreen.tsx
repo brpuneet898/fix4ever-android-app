@@ -287,11 +287,8 @@ export function DraftsScreen() {
     if (loading) {
       return 'Loading your saved drafts...';
     }
-    if (drafts.length > 0) {
-      return 'Drafts automatically expire after 7 days';
-    }
     return 'Continue working on your saved requests';
-  }, [drafts.length, loading]);
+  }, [loading]);
 
   return (
     <SafeAreaProvider>
