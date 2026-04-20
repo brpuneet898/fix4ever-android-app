@@ -1083,8 +1083,12 @@ export function ServiceRequestStack({
       try {
         const finalStepIndex = STEPS.length - 1;
         await saveDraftProgress(finalStepIndex);
+        const currentDraftId = activeDraftIdRef.current;
             const token = await getStoredToken();
             const formDataObj = new FormData();
+          if (currentDraftId) {
+            formDataObj.append('draftId', currentDraftId);
+          }
             // Create FormData object
             Object.entries(formData).forEach(([key, value]) => {
                 // Append all form fields except images

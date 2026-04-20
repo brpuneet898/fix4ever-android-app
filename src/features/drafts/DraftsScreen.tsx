@@ -128,6 +128,11 @@ export function DraftsScreen() {
       ...typography.body,
       color: colors.mutedForeground,
     },
+    expiryNote: {
+      ...typography.caption,
+      color: colors.mutedForeground,
+      marginTop: spacing.xs,
+    },
     draftCard: {
       backgroundColor: colors.card,
       padding: spacing.lg,
@@ -296,6 +301,9 @@ export function DraftsScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Drafts</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
+          {drafts.length > 0 && (
+            <Text style={styles.expiryNote}>Drafts automatically expire after 7 days</Text>
+          )}
         </View>
 
         <View style={styles.createButton}>
