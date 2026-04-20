@@ -83,7 +83,24 @@ export function ServiceRequestsScreen() {
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, isDark } = useTheme();
+
+  const fonts = {
+    regular: 'Montserrat-Regular',
+    medium: 'Montserrat-Medium',
+    semibold: 'Montserrat-SemiBold',
+    bold: 'Montserrat-Bold',
+  } as const;
+
+  const primaryBlue = isDark ? '#1C4E7E' : '#01325D';
+  const screenBg = isDark ? '#242D3B' : '#F6F8FB';
+  const headingColor = isDark ? '#F3F7FF' : '#082C50';
+  const subtitleColor = isDark ? '#C6D4E8' : '#5B6B80';
+  const cardBg = isDark ? '#2D394A' : '#FFFFFF';
+  const cardBorder = isDark ? '#3F5169' : '#E4E9F1';
+  const statusColor = isDark ? '#C7D2E2' : '#6B7788';
+  const mutedLabel = isDark ? '#B7C4D8' : '#667085';
+  const bodyText = isDark ? '#F2F6FD' : '#111827';
 
   const getServiceRequests = async () => {
       const token: string | null = await getStoredToken();
@@ -123,13 +140,13 @@ export function ServiceRequestsScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Completed':
-        return colors.success;
+        return isDark ? '#87E0B2' : '#14804A';
       case 'In Progress':
-        return colors.warning;
+        return isDark ? '#FFD7A3' : '#B96800';
       case 'Pending':
-        return colors.mutedForeground;
+        return statusColor;
       default:
-        return colors.mutedForeground;
+        return statusColor;
     }
   };
 
@@ -144,113 +161,163 @@ export function ServiceRequestsScreen() {
   const styles = useMemo(
       ()=>
         StyleSheet.create({
-          container: {
-            flex: 1,
-            backgroundColor: colors.background,
-          },
           scroll: {
             flex: 1,
-            backgroundColor: colors.background,
+            backgroundColor: screenBg,
           },
           scrollContent: {
             paddingHorizontal: spacing.lg,
-            paddingTop: insets.top + spacing.lg,
-            paddingBottom: insets.bottom + spacing.xxl,
+            paddingTop: insets.top + spacing.md,
+            paddingBottom: insets.bottom + spacing.xl,
           },
           header: {
-            marginBottom: spacing.lg,
+            marginBottom: spacing.lg + spacing.xs,
+            alignItems: 'center',
           },
           title: {
-            ...typography.title,
-            fontSize: 28,
-            color: colors.foreground,
-            marginBottom: spacing.sm,
+            fontSize: 38,
+            lineHeight: 58,
+            letterSpacing: -0.6,
+            color: headingColor,
+            marginBottom: spacing.xs,
+            fontFamily: fonts.bold,
+            textAlign: 'center',
           },
           subtitle: {
-            ...typography.body,
-            color: colors.mutedForeground,
+            fontSize: 17,
+            lineHeight: 24,
+            color: subtitleColor,
+            fontFamily: fonts.medium,
+            textAlign: 'center',
           },
           requestCard: {
-            backgroundColor: colors.card,
+            backgroundColor: cardBg,
             padding: spacing.lg,
-            borderRadius: 12,
-            marginBottom: spacing.md,
-            shadowColor: colors.foreground,
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.05,
-            shadowRadius: 4,
-            elevation: 2,
+            borderRadius: 18,
+            marginBottom: spacing.md + spacing.xs,
+            borderWidth: 1,
+            borderColor: cardBorder,
+            shadowColor: '#000000',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: isDark ? 0.18 : 0.08,
+            shadowRadius: 14,
+            elevation: 4,
           },
           requestHeader: {
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
-            marginBottom: spacing.md,
+            marginBottom: spacing.md + 2,
           },
           requestTitle: {
             flex: 1,
+            paddingRight: spacing.md,
           },
           deviceModel: {
-            ...typography.subtitle,
-            color: colors.foreground,
-            fontSize: 16,
-            fontWeight: '600',
+            color: headingColor,
+            fontSize: 18,
+            lineHeight: 24,
+            letterSpacing: -0.2,
             marginBottom: spacing.xs,
+            fontFamily: fonts.bold,
+            textTransform: 'uppercase',
           },
           issueDescription: {
-            ...typography.body,
-            color: colors.mutedForeground,
+            color: mutedLabel,
             fontSize: 14,
             lineHeight: 20,
+            fontFamily: fonts.medium,
           },
           statusBadge: {
-            paddingHorizontal: spacing.sm,
+            paddingHorizontal: spacing.xs,
             paddingVertical: spacing.xs,
-            borderRadius: 6,
           },
           statusText: {
-            ...typography.caption,
-            fontSize: 10,
-            fontWeight: '600',
+            fontSize: 14,
+            lineHeight: 18,
+            fontFamily: fonts.semibold,
+            fontStyle: 'italic',
           },
           requestDetails: {
-            gap: spacing.sm,
+            gap: spacing.sm + 2,
           },
           detailRow: {
             flexDirection: 'row',
             justifyContent: 'space-between',
+            alignItems: 'center',
           },
           detailLabel: {
-            ...typography.bodySmall,
-            color: colors.mutedForeground,
+            fontSize: 16,
+            lineHeight: 22,
+            color: mutedLabel,
+            fontFamily: fonts.medium,
           },
           detailValue: {
-            ...typography.bodySmall,
-            color: colors.foreground,
-            fontWeight: '500',
+            fontSize: 16,
+            lineHeight: 22,
+            color: bodyText,
+            fontFamily: fonts.semibold,
           },
           createButton: {
-            marginBottom: spacing.lg,
+            marginBottom: spacing.lg + spacing.xs,
+          },
+          createRequestButton: {
+            borderRadius: 14,
+            minHeight: 56,
+            backgroundColor: primaryBlue,
+            shadowColor: '#000000',
+            shadowOpacity: isDark ? 0.26 : 0.16,
+            shadowRadius: 10,
+            shadowOffset: { width: 0, height: 5 },
+            elevation: 4,
+          },
+          createRequestButtonText: {
+            color: '#FFFFFF',
+            fontFamily: fonts.semibold,
+            fontSize: 16,
+            lineHeight: 20,
           },
           emptyState: {
             alignItems: 'center',
             paddingVertical: spacing.xxl,
+            backgroundColor: cardBg,
+            borderRadius: 18,
+            borderWidth: 1,
+            borderColor: cardBorder,
+            paddingHorizontal: spacing.lg,
           },
           emptyTitle: {
-            ...typography.subtitle,
-            color: colors.foreground,
+            fontSize: 22,
+            lineHeight: 28,
+            color: headingColor,
             marginBottom: spacing.sm,
+            fontFamily: fonts.bold,
           },
           emptySubtitle: {
-            ...typography.body,
-            color: colors.mutedForeground,
+            fontSize: 15,
+            lineHeight: 22,
+            color: subtitleColor,
             textAlign: 'center',
+            fontFamily: fonts.medium,
           },
         })
-      ,[colors, spacing, typography, insets])
+      ,[spacing, insets, screenBg, headingColor, subtitleColor, cardBg, cardBorder, mutedLabel, bodyText, primaryBlue, isDark, fonts])
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={loading}
+          onRefresh={getServiceRequests}
+          tintColor={primaryBlue}
+          colors={[primaryBlue]}
+          progressBackgroundColor={cardBg}
+        />
+      }
+    >
         <View style={styles.header}>
           <Text style={styles.title}>Service Requests</Text>
           <Text style={styles.subtitle}>Track and manage your repair requests</Text>
@@ -260,6 +327,8 @@ export function ServiceRequestsScreen() {
           <Button
             title="Create New Request"
             variant="primary"
+            style={styles.createRequestButton}
+            textStyle={styles.createRequestButtonText}
             onPress={  (() => {
               navigation.navigate('ServiceRequestStack');
           })} 

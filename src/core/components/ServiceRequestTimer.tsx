@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Alert } from 'react-native';
+import Icon from 'react-native-vector-icons/Feather';
 import { useTheme } from '../../core/theme';
 
 interface ServiceRequestTimerProps {
@@ -46,7 +47,22 @@ const RETRY_REASONS = [
 ];
 
 export function ServiceRequestTimer({ serviceRequest }: ServiceRequestTimerProps) {
-  const { colors, typography } = useTheme();
+  const { colors, typography, isDark } = useTheme();
+  const fonts = {
+    medium: 'Montserrat-Medium',
+    semibold: 'Montserrat-SemiBold',
+    bold: 'Montserrat-Bold',
+  } as const;
+
+  const primaryBlue = isDark ? '#2B5F91' : '#01325D';
+  const waitingStripBg = isDark ? '#33465F' : '#FFFFFF';
+  const waitingStripBorder = isDark ? '#51698A' : '#D4DEEA';
+  const waitingDot = isDark ? '#6DD89A' : '#299C61';
+  const timerSuccess = isDark ? '#86E0B1' : '#147D47';
+  const timerWarning = isDark ? '#F6C887' : '#B96800';
+  const countdownCaption = isDark ? '#C2D0E2' : '#5F6E82';
+  const outlineBorder = isDark ? '#60748F' : '#CBD6E5';
+  const outlineText = isDark ? '#EAF1FB' : '#18263A';
   const [timeLeft, setTimeLeft] = useState<{
     hours: number;
     minutes: number;
@@ -132,9 +148,9 @@ export function ServiceRequestTimer({ serviceRequest }: ServiceRequestTimerProps
 
   const getTimerColor = () => {
     if (isExpired) return colors.error;
-    if (timeLeft.total < 5 * 60 * 1000) return colors.warning; // Less than 5 minutes
-    if (timeLeft.total < 10 * 60 * 1000) return colors.warning; // Less than 10 minutes
-    return colors.success;
+    if (timeLeft.total < 5 * 60 * 1000) return timerWarning; // Less than 5 minutes
+    if (timeLeft.total < 10 * 60 * 1000) return timerWarning; // Less than 10 minutes
+    return timerSuccess;
   };
 
   const getStatusBadge = () => {
@@ -144,9 +160,9 @@ export function ServiceRequestTimer({ serviceRequest }: ServiceRequestTimerProps
       return { text: 'Expired', color: colors.error };
     }
     if (serviceRequest.status === 'Assigned') {
-      return { text: 'Assigned', color: colors.success };
+      return { text: 'Assigned', color: timerSuccess };
     }
-    return { text: 'Waiting', color: colors.primary };
+    return { text: 'Waiting', color: primaryBlue };
   };
 
   // Don't render if serviceRequest is not available or not pending
@@ -154,7 +170,7 @@ export function ServiceRequestTimer({ serviceRequest }: ServiceRequestTimerProps
     return null;
   }
 
-  const statusBadge = getStatusBadge();
+  const statusBadge = getStatusBadge() ?? { text: 'Waiting', color: primaryBlue };
 
   const styles = StyleSheet.create({
     container: {
@@ -164,12 +180,12 @@ export function ServiceRequestTimer({ serviceRequest }: ServiceRequestTimerProps
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      backgroundColor: colors.primary + '10',
-      borderRadius: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      backgroundColor: waitingStripBg,
+      borderRadius: 10,
       borderWidth: 1,
-      borderColor: colors.primary + '30',
+      borderColor: waitingStripBorder,
     },
     timerHeaderText: {
       flexDirection: 'row',
@@ -177,45 +193,51 @@ export function ServiceRequestTimer({ serviceRequest }: ServiceRequestTimerProps
       gap: 8,
     },
     timerIcon: {
-      width: 16,
-      height: 16,
-      borderRadius: 8,
-      backgroundColor: getTimerColor(),
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: waitingDot,
     },
     timerLabel: {
-      ...typography.bodySmall,
-      fontSize: 14,
-      color: colors.foreground,
-      fontWeight: '500',
+      ...typography.body,
+      fontSize: 15,
+      color: outlineText,
+      fontFamily: fonts.semibold,
+      lineHeight: 20,
     },
     statusBadge: {
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 4,
-      backgroundColor: statusBadge.color,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 8,
+      backgroundColor: isExpired ? colors.error + '1A' : primaryBlue + '1A',
     },
     statusBadgeText: {
       ...typography.caption,
-      fontSize: 10,
-      color: '#FFFFFF',
-      fontWeight: '600',
+      fontSize: 11,
+      color: statusBadge.color,
+      fontFamily: fonts.semibold,
     },
     countdownContainer: {
       alignItems: 'center',
-      paddingVertical: 12,
+      paddingVertical: 14,
     },
     countdownText: {
       ...typography.title,
-      fontSize: 24,
+      fontSize: 32,
+      lineHeight: 38,
       color: getTimerColor(),
-      fontWeight: '700',
-      fontFamily: 'monospace',
+      fontFamily: fonts.bold,
+      letterSpacing: 1,
+      textAlign: 'center',
     },
     countdownSubtext: {
-      ...typography.caption,
-      fontSize: 12,
-      color: colors.mutedForeground,
-      marginTop: 4,
+      ...typography.bodySmall,
+      fontSize: 14,
+      lineHeight: 18,
+      color: countdownCaption,
+      marginTop: 6,
+      textAlign: 'center',
+      fontFamily: fonts.medium,
     },
     expiredContainer: {
       alignItems: 'center',
@@ -236,29 +258,33 @@ export function ServiceRequestTimer({ serviceRequest }: ServiceRequestTimerProps
     },
     actionButtons: {
       flexDirection: 'row',
-      gap: 8,
-      marginTop: 8,
+      gap: 10,
+      marginTop: 6,
     },
     actionButton: {
       flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: 8,
+      paddingVertical: 11,
       paddingHorizontal: 12,
-      borderRadius: 6,
+      borderRadius: 10,
       borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.card,
+      borderColor: outlineBorder,
+      backgroundColor: isDark ? '#2C394A' : '#FFFFFF',
     },
     actionButtonDisabled: {
       opacity: 0.5,
     },
     actionButtonText: {
-      ...typography.caption,
-      fontSize: 12,
-      color: colors.foreground,
-      fontWeight: '500',
+      ...typography.body,
+      fontSize: 14,
+      color: outlineText,
+      fontFamily: fonts.semibold,
+      lineHeight: 17,
+    },
+    actionButtonIcon: {
+      marginRight: 6,
     },
     modalOverlay: {
       flex: 1,
@@ -292,8 +318,8 @@ export function ServiceRequestTimer({ serviceRequest }: ServiceRequestTimerProps
       marginBottom: 8,
     },
     reasonButtonSelected: {
-      borderColor: colors.primary,
-      backgroundColor: colors.primary + '10',
+      borderColor: primaryBlue,
+      backgroundColor: primaryBlue + '10',
     },
     reasonIcon: {
       fontSize: 20,
@@ -319,7 +345,7 @@ export function ServiceRequestTimer({ serviceRequest }: ServiceRequestTimerProps
       backgroundColor: colors.muted,
     },
     modalButtonConfirm: {
-      backgroundColor: colors.primary,
+      backgroundColor: primaryBlue,
     },
     modalButtonText: {
       ...typography.bodySmall,
@@ -380,9 +406,19 @@ export function ServiceRequestTimer({ serviceRequest }: ServiceRequestTimerProps
             (isRetrying || isModifying) && styles.actionButtonDisabled,
           ]}
         >
-          <Text style={styles.actionButtonText}>
-            {isRetrying ? 'Retrying...' : '↻ Retry'}
-          </Text>
+          {isRetrying ? (
+            <Text style={styles.actionButtonText}>Retrying...</Text>
+          ) : (
+            <>
+              <Icon
+                name="rotate-ccw"
+                size={14}
+                color={outlineText}
+                style={styles.actionButtonIcon}
+              />
+              <Text style={styles.actionButtonText}>Retry</Text>
+            </>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -393,9 +429,19 @@ export function ServiceRequestTimer({ serviceRequest }: ServiceRequestTimerProps
             (isRetrying || isModifying) && styles.actionButtonDisabled,
           ]}
         >
-          <Text style={styles.actionButtonText}>
-            {isModifying ? 'Modifying...' : '✏️ Modify'}
-          </Text>
+          {isModifying ? (
+            <Text style={styles.actionButtonText}>Modifying...</Text>
+          ) : (
+            <>
+              <Icon
+                name="edit-2"
+                size={14}
+                color={outlineText}
+                style={styles.actionButtonIcon}
+              />
+              <Text style={styles.actionButtonText}>Modify</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
 
