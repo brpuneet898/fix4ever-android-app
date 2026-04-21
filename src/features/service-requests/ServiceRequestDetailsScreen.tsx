@@ -21,7 +21,6 @@ import { useTheme } from '../../core/theme';
 import { Button, ServiceRequestTimer, RealTimeServiceTracker } from '../../core/components';
 import Icon from 'react-native-vector-icons/Feather';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { requestWithAuth } from '../../core/api';
 import { getStoredToken } from '../../core/storage';
@@ -313,7 +312,23 @@ interface PaymentBreakdown {
 }
 
 export function ServiceRequestDetailsScreen(): React.ReactElement {
-  const { colors, typography, spacing } = useTheme();
+  const { colors: themeColors, typography, spacing, isDark } = useTheme();
+  const fonts = {
+    regular: 'Montserrat-Regular',
+    medium: 'Montserrat-Medium',
+    semibold: 'Montserrat-SemiBold',
+    bold: 'Montserrat-Bold',
+  } as const;
+  const primaryBlue = isDark ? '#58A6FF' : '#01325D';
+  const screenBg = isDark ? '#242D3B' : '#F6F8FB';
+  const headerBg = isDark ? '#2D394A' : '#FFFFFF';
+  const cardBg = isDark ? '#2D394A' : '#FFFFFF';
+  const cardBorder = isDark ? '#43526A' : '#E4E9F1';
+  const headingColor = isDark ? '#F3F7FF' : '#082C50';
+  const bodyColor = isDark ? '#E8F0FC' : '#10243C';
+  const mutedText = isDark ? '#B8C8DE' : '#64748B';
+  const warrantyAccent = isDark ? '#B9A6FF' : '#6D28D9';
+  const colors = { ...themeColors, primary: primaryBlue };
   const insets = useSafeAreaInsets();
   const route = useRoute();
   const navigation = useNavigation();
@@ -604,12 +619,12 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
       case 'cancelled':
         return colors.error;
       default:
-        return colors.mutedForeground;
+        return mutedText;
     }
   };
 
   const getPriorityColor = (priority?: string) => {
-    if (!priority) return colors.mutedForeground;
+    if (!priority) return mutedText;
     switch (priority.toLowerCase()) {
       case 'high':
         return colors.error;
@@ -618,7 +633,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
       case 'low':
         return colors.success;
       default:
-        return colors.mutedForeground;
+        return mutedText;
     }
   };
 
@@ -717,7 +732,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: screenBg,
     },
     header: {
       flexDirection: 'row',
@@ -725,15 +740,16 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
       justifyContent: 'space-between',
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.md,
-      backgroundColor: colors.card,
+      backgroundColor: headerBg,
       borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      borderBottomColor: cardBorder,
       paddingTop: spacing.md + insets.top,
     },
     headerTitle: {
       fontSize: 18,
-      fontWeight: '600',
-      color: colors.foreground,
+      lineHeight: 24,
+      fontFamily: fonts.semibold,
+      color: headingColor,
     },
     backButton: {
       padding: spacing.sm,
@@ -746,17 +762,17 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
       paddingBottom: spacing.xxl + insets.bottom,
     },
     card: {
-      backgroundColor: colors.card,
-      borderRadius: 12,
+      backgroundColor: cardBg,
+      borderRadius: 16,
       padding: spacing.lg,
       marginBottom: spacing.md,
       borderWidth: 1,
-      borderColor: colors.border,
-      shadowColor: colors.foreground,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 4,
-      elevation: 2,
+      borderColor: cardBorder,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: isDark ? 0.18 : 0.08,
+      shadowRadius: 12,
+      elevation: 4,
     },
     statusBadge: {
       paddingHorizontal: spacing.sm,
@@ -770,14 +786,15 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
     },
     statusText: {
       fontSize: 12,
-      fontWeight: '600',
+      fontFamily: fonts.semibold,
       color: '#FFFFFF',
       textTransform: 'uppercase',
     },
     sectionTitle: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: colors.foreground,
+      fontSize: 18,
+      lineHeight: 24,
+      fontFamily: fonts.bold,
+      color: headingColor,
       marginBottom: spacing.sm,
     },
     detailRow: {
@@ -788,12 +805,16 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
     },
     detailLabel: {
       fontSize: 14,
-      color: colors.mutedForeground,
+      lineHeight: 20,
+      color: mutedText,
+      fontFamily: fonts.medium,
       flex: 1,
     },
     detailValue: {
       fontSize: 14,
-      color: colors.foreground,
+      lineHeight: 20,
+      color: bodyColor,
+      fontFamily: fonts.semibold,
       flex: 2,
       textAlign: 'right',
     },
@@ -806,7 +827,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
       width: 48,
       height: 48,
       borderRadius: 8,
-      backgroundColor: colors.primary + '20',
+      backgroundColor: primaryBlue + '14',
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: spacing.md,
@@ -816,51 +837,34 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
     },
     deviceName: {
       fontSize: 16,
-      fontWeight: '600',
-      color: colors.foreground,
+      fontFamily: fonts.bold,
+      color: headingColor,
       marginBottom: spacing.xs,
     },
     deviceType: {
       fontSize: 14,
-      color: colors.mutedForeground,
+      color: mutedText,
+      fontFamily: fonts.medium,
     },
     actionButtons: {
       flexDirection: 'row',
       gap: spacing.sm,
       marginTop: spacing.lg,
     },
-    actionButton: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: spacing.sm,
-      paddingHorizontal: spacing.md,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.card,
-    },
-    actionButtonText: {
-      fontSize: 14,
-      fontWeight: '500',
-      color: colors.foreground,
-      marginLeft: spacing.xs,
-    },
     technicianInfo: {
       flexDirection: 'row',
       alignItems: 'center',
       padding: spacing.md,
-      backgroundColor: colors.primary + '10',
-      borderRadius: 8,
+      backgroundColor: primaryBlue + '10',
+      borderRadius: 12,
       borderWidth: 1,
-      borderColor: colors.primary + '30',
+      borderColor: primaryBlue + '28',
     },
     technicianAvatar: {
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: colors.primary,
+      backgroundColor: primaryBlue,
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: spacing.sm,
@@ -870,16 +874,18 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
     },
     technicianName: {
       fontSize: 14,
-      fontWeight: '600',
-      color: colors.foreground,
+      fontFamily: fonts.semibold,
+      color: headingColor,
     },
     technicianStatus: {
       fontSize: 12,
-      color: colors.mutedForeground,
+      color: mutedText,
+      fontFamily: fonts.medium,
     },
     technicianContact: {
       fontSize: 13,
-      color: colors.mutedForeground,
+      color: mutedText,
+      fontFamily: fonts.medium,
       marginTop: 2,
     },
     // Technician action buttons
@@ -897,23 +903,24 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
       borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 8,
-      backgroundColor: 'transparent',
+      borderColor: cardBorder,
+      borderRadius: 10,
+      backgroundColor: isDark ? '#2D394A' : '#FFFFFF',
     },
     actionButtonText: {
       fontSize: 14,
-      fontWeight: '500',
-      color: colors.mutedForeground,
+      lineHeight: 18,
+      fontFamily: fonts.semibold,
+      color: bodyColor,
     },
     // Payment section styles
     paymentSection: {
       gap: spacing.sm,
     },
     priceBreakdown: {
-      backgroundColor: colors.primary + '10',
+      backgroundColor: primaryBlue + '10',
       borderWidth: 1,
-      borderColor: colors.primary + '30',
+      borderColor: primaryBlue + '30',
       borderRadius: 8,
       padding: spacing.sm,
       marginBottom: spacing.sm,
@@ -930,27 +937,27 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
       alignItems: 'center',
       paddingTop: spacing.sm,
       borderTopWidth: 1,
-      borderTopColor: colors.primary + '30',
+      borderTopColor: primaryBlue + '30',
     },
     priceLabel: {
       fontSize: 14,
-      color: colors.primary,
-      fontWeight: '500',
+      color: primaryBlue,
+      fontFamily: fonts.medium,
     },
     priceValue: {
       fontSize: 14,
-      color: colors.primary,
-      fontWeight: 'bold',
+      color: primaryBlue,
+      fontFamily: fonts.bold,
     },
     totalPriceLabel: {
       fontSize: 14,
-      color: colors.primary,
-      fontWeight: '600',
+      color: primaryBlue,
+      fontFamily: fonts.semibold,
     },
     totalPriceValue: {
       fontSize: 18,
-      color: colors.primary,
-      fontWeight: 'bold',
+      color: primaryBlue,
+      fontFamily: fonts.bold,
     },
     awaitingPriceContainer: {
       backgroundColor: colors.warning + '10',
@@ -1088,13 +1095,14 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
     },
     timelineTitle: {
       fontSize: 14,
-      fontWeight: '600',
-      color: colors.foreground,
+      fontFamily: fonts.semibold,
+      color: headingColor,
       marginBottom: spacing.xs,
     },
     timelineDescription: {
       fontSize: 12,
-      color: colors.mutedForeground,
+      color: mutedText,
+      fontFamily: fonts.medium,
     },
     paymentRow: {
       flexDirection: 'row',
@@ -1118,16 +1126,16 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
       padding: spacing.lg,
     },
     modalContent: {
-      backgroundColor: colors.card,
-      borderRadius: 12,
+      backgroundColor: cardBg,
+      borderRadius: 16,
       padding: spacing.lg,
       width: '100%',
       maxWidth: 400,
     },
     modalTitle: {
       fontSize: 18,
-      fontWeight: '600',
-      color: colors.foreground,
+      fontFamily: fonts.semibold,
+      color: headingColor,
       marginBottom: spacing.sm,
     },
     modalHeader: {
@@ -1139,6 +1147,16 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
     textArea: {
       height: 100,
       textAlignVertical: 'top',
+    },
+    input: {
+      backgroundColor: isDark ? '#334155' : '#FFFFFF',
+      color: bodyColor,
+      borderRadius: 10,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: cardBorder,
+      fontFamily: fonts.medium,
+      fontSize: 14,
     },
     ratingContainer: {
       flexDirection: 'row',
@@ -1163,10 +1181,10 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
     identificationCard: {
       borderColor: colors.warning,
       borderWidth: 2,
-      backgroundColor: colors.warning + '10',
+      backgroundColor: colors.warning + '12',
     },
     customCancelDialog: {
-      backgroundColor: colors.card,
+      backgroundColor: cardBg,
       borderRadius: 12,
       borderWidth: 2,
       borderColor: '#DC2626',
@@ -1192,14 +1210,15 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
     },
     cancelDialogTitle: {
       fontSize: 18,
-      fontWeight: '600',
-      color: colors.foreground,
+      fontFamily: fonts.semibold,
+      color: headingColor,
       flex: 1,
     },
     cancelDialogMessage: {
       fontSize: 14,
-      color: colors.mutedForeground,
+      color: mutedText,
       lineHeight: 20,
+      fontFamily: fonts.medium,
       marginBottom: 24,
     },
     cancelDialogActions: {
@@ -1214,14 +1233,14 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
       paddingVertical: 10,
       borderRadius: 6,
       borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.card,
+      borderColor: cardBorder,
+      backgroundColor: cardBg,
       gap: 8,
     },
     cancelDialogGoBackText: {
       fontSize: 14,
-      fontWeight: '500',
-      color: '#000000',
+      fontFamily: fonts.semibold,
+      color: bodyColor,
     },
     cancelDialogConfirmButton: {
       flexDirection: 'row',
@@ -1234,14 +1253,14 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
     },
     cancelDialogConfirmText: {
       fontSize: 14,
-      fontWeight: '500',
+      fontFamily: fonts.semibold,
       color: '#FFFFFF',
     },
     loadingContainer: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: colors.background,
+      backgroundColor: screenBg,
     },
   });
 
@@ -1251,7 +1270,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
       <SafeAreaProvider>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={{ marginTop: spacing.sm, color: colors.mutedForeground }}>
+          <Text style={{ marginTop: spacing.sm, color: mutedText, fontFamily: fonts.medium }}>
             Loading service request...
           </Text>
         </View>
@@ -1264,7 +1283,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
     return (
       <SafeAreaProvider>
         <View style={styles.loadingContainer}>
-          <Text style={{ fontSize: 16, color: colors.error, textAlign: 'center', marginBottom: spacing.md }}>
+          <Text style={{ fontSize: 16, color: colors.error, textAlign: 'center', marginBottom: spacing.md, fontFamily: fonts.semibold }}>
             {error}
           </Text>
           <TouchableOpacity 
@@ -1274,7 +1293,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
               fetchServiceRequest();
             }}
           >
-            <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>Retry</Text>
+            <Text style={{ color: '#FFFFFF', fontFamily: fonts.semibold }}>Retry</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaProvider>
@@ -1287,11 +1306,11 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Icon name="arrow-left" size={24} color={colors.foreground} />
+            <Icon name="arrow-left" size={24} color={headingColor} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Service Request Details</Text>
           <TouchableOpacity onPress={handleShare}>
-            <Icon name="share-2" size={24} color={colors.foreground} />
+            <Icon name="share-2" size={24} color={headingColor} />
           </TouchableOpacity>
         </View>
 
@@ -1435,7 +1454,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
                       backgroundColor: serviceRequest.scheduleStatus === 'accepted' ? colors.success :
                                        serviceRequest.scheduleStatus === 'proposed' ? colors.warning :
                                        serviceRequest.scheduleStatus === 'rejected' ? colors.error :
-                                       colors.mutedForeground,
+                                       mutedText,
                       paddingHorizontal: spacing.sm,
                       paddingVertical: spacing.xs,
                     }
@@ -1450,7 +1469,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
               {serviceRequest.scheduledDate && (
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>
-                    <Icon name="calendar" size={14} color={colors.primary} /> Scheduled Date:
+                    <Icon name="calendar" size={14} color={colors.primary} /> Date:
                   </Text>
                   <Text style={styles.detailValue}>{formatDate(serviceRequest.scheduledDate)}</Text>
                 </View>
@@ -1459,7 +1478,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
               {serviceRequest.scheduledTime && (
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>
-                    <Icon name="clock" size={14} color={colors.primary} /> Scheduled Time:
+                    <Icon name="clock" size={16} color={colors.primary} /> Time:
                   </Text>
                   <Text style={styles.detailValue}>{serviceRequest.scheduledTime}</Text>
                 </View>
@@ -1468,7 +1487,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
               {serviceRequest.scheduleNotes && (
                 <View style={{ marginTop: spacing.sm }}>
                   <Text style={[styles.detailLabel, { marginBottom: spacing.xs }]}>
-                    <Icon name="file-text" size={14} color={colors.primary} /> Schedule Notes:
+                    <Icon name="file-text" size={16} color={colors.primary} /> Schedule Notes:
                   </Text>
                   <Text style={[styles.detailValue, { textAlign: 'left', lineHeight: 20 }]}>
                     {serviceRequest.scheduleNotes}
@@ -1496,13 +1515,13 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Service Location</Text>
               {serviceRequest.address && (
-                <View style={styles.detailRow}>
+                <View style={[styles.detailRow, { alignItems: 'flex-start' }]}>
                   <Text style={styles.detailLabel}>Address:</Text>
                   <Text style={styles.detailValue}>{serviceRequest.address}</Text>
                 </View>
               )}
               {serviceRequest.city && (
-                <View style={styles.detailRow}>
+                <View style={[styles.detailRow, { alignItems: 'flex-start' }]}>
                   <Text style={styles.detailLabel}>City:</Text>
                   <Text style={styles.detailValue}>{serviceRequest.city}</Text>
                 </View>
@@ -1523,10 +1542,10 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
                     {serviceRequest.assignedTechnician.pocInfo.fullName}
                   </Text>
                   <Text style={styles.technicianContact}>
-                    <Icon name="phone" size={12} color="#afafaf" /> {serviceRequest.assignedTechnician.pocInfo.phone}
+                    <Icon name="phone" size={12} color={mutedText} /> {serviceRequest.assignedTechnician.pocInfo.phone}
                   </Text>    
                   <Text style={styles.technicianContact}>
-                    <Icon name="mail" size={12} color="#afafaf" /> {serviceRequest.assignedTechnician.pocInfo.email}
+                    <Icon name="mail" size={12} color={mutedText} /> {serviceRequest.assignedTechnician.pocInfo.email}
                   </Text>
                   <Text style={styles.technicianStatus}>Technician</Text>
                 </View>
@@ -1555,7 +1574,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
                   }}
                 >
                   <Icon name="message-circle" size={16} color={colors.primary} />
-                  <Text style={[styles.actionButtonText, { color: colors.foreground }]}>Message</Text>
+                  <Text style={styles.actionButtonText}>Message</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1564,22 +1583,22 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
           {/* Status Timeline */}
           <View style={styles.card}>
             <View style={styles.timelineHeader}>
-              <Text style={styles.sectionTitle}>Status Timeline</Text>
+              <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Status Timeline</Text>
               <TouchableOpacity 
                 onPress={toggleTimeline}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}
               >
-                <Text style={{ color: colors.primary, fontSize: 14, fontWeight: '500' }}>
+                <Text style={{ color: colors.primary, fontSize: 14, fontFamily: fonts.semibold, lineHeight: 20 }}>
                   {isTimelineExpanded ? "Show Less" : "Show All Steps"}
                 </Text>
                 <Icon 
                   name={isTimelineExpanded ? "chevron-up" : "chevron-down"} 
                   size={16} 
                   color={colors.primary} 
+                  style={{ marginTop: 1 }}
                 />
               </TouchableOpacity>
-            </View>
-            
+            </View>            
             <Animated.View style={{ height: isTimelineExpanded ? 'auto' : 0, overflow: 'hidden' }}>
               {/* Request Created */}
               <View style={styles.timelineItem}>
@@ -1628,8 +1647,8 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
               {/* Last Updated */}
               {serviceRequest.updatedAt && serviceRequest.updatedAt !== serviceRequest.createdAt && (
                 <View style={styles.timelineItem}>
-                  <View style={[styles.timelineIcon, { backgroundColor: colors.mutedForeground + '20' }]}>
-                    <Icon name="clock" size={16} color={colors.mutedForeground} />
+                <View style={[styles.timelineIcon, { backgroundColor: mutedText + '20' }]}>
+                  <Icon name="clock" size={16} color={mutedText} />
                   </View>
                   <View style={styles.timelineContent}>
                     <Text style={styles.timelineTitle}>Last Updated</Text>
@@ -1665,7 +1684,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
                   <RupeeReceiptSVG width={20} height={20} strokeWidth={10} />
                   <Text style={styles.sectionTitle}>Pricing Structure</Text>
                 </View>
-                <Text style={{ fontSize: 14, color: colors.mutedForeground, marginTop: spacing.xs }}>
+                <Text style={{ fontSize: 14, color: mutedText, marginTop: spacing.xs, fontFamily: fonts.medium }}>
                   {serviceRequest.adminFinalPrice
                     ? 'Final pricing breakdown for your service'
                     : 'Estimated pricing breakdown based on your request'}
@@ -1676,10 +1695,10 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
               {serviceRequest.calculatedPricing.netChargeRange && (
                 <View style={{ marginBottom: spacing.md }}>
                   <View style={[styles.paymentRow, { borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: spacing.sm }]}>
-                    <Text style={{ fontSize: 14, fontWeight: '500', color: colors.foreground }}>
+                    <Text style={{ fontSize: 14, fontFamily: fonts.medium, color: bodyColor }}>
                       Base Service Charge
                     </Text>
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: colors.foreground }}>
+                    <Text style={{ fontSize: 14, fontFamily: fonts.semibold, color: bodyColor }}>
                       {serviceRequest.adminFinalPrice
                         ? `₹${
                             serviceRequest.adminFinalPrice -
@@ -1698,8 +1717,8 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
               {/* Component Cost */}
               {serviceRequest.paymentBreakdown?.componentCost > 0 && (
                 <View style={styles.paymentRow}>
-                  <Text style={{ fontSize: 14, color: colors.mutedForeground }}>Component/Parts Cost</Text>
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: colors.foreground }}>
+                  <Text style={{ fontSize: 14, color: mutedText, fontFamily: fonts.medium }}>Component/Parts Cost</Text>
+                  <Text style={{ fontSize: 14, fontFamily: fonts.medium, color: bodyColor }}>
                     ₹{serviceRequest.paymentBreakdown.componentCost}
                   </Text>
                 </View>
@@ -1710,13 +1729,13 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
                 <View style={styles.paymentRow}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 }}>
                     <Icon name="truck" size={16} color={colors.primary} />
-                    <Text style={{ fontSize: 14, color: colors.mutedForeground }}>
+                    <Text style={{ fontSize: 14, color: mutedText, fontFamily: fonts.medium }}>
                       {serviceRequest.serviceType === 'pickup-drop'
                         ? 'Pickup & Drop Charges'
                         : 'Onsite Visit Charges'}
                     </Text>
                   </View>
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: colors.primary }}>
+                  <Text style={{ fontSize: 14, fontFamily: fonts.medium, color: colors.primary }}>
                     ₹{serviceRequest.calculatedPricing.serviceTypeFee}
                   </Text>
                 </View>
@@ -1728,17 +1747,17 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 }}>
                     <Icon name="zap" size={16} color={colors.warning} />
                     <View>
-                      <Text style={{ fontSize: 14, color: colors.mutedForeground }}>
+                      <Text style={{ fontSize: 14, color: mutedText, fontFamily: fonts.medium }}>
                         Emergency/Urgency Charges
                       </Text>
                       {serviceRequest.calculatedPricing.urgencyLevel && (
-                        <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 2 }}>
+                        <Text style={{ fontSize: 12, color: mutedText, marginTop: 2, fontFamily: fonts.medium }}>
                           ({serviceRequest.calculatedPricing.urgencyLevel})
                         </Text>
                       )}
                     </View>
                   </View>
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: colors.warning }}>
+                  <Text style={{ fontSize: 14, fontFamily: fonts.medium, color: colors.warning }}>
                     ₹{serviceRequest.calculatedPricing.urgencyFee}
                   </Text>
                 </View>
@@ -1748,19 +1767,19 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
               {serviceRequest.calculatedPricing.warrantyFee > 0 && (
                 <View style={styles.paymentRow}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 }}>
-                    <Icon name="shield" size={16} color="#8B5CF6" />
+                    <Icon name="shield" size={16} color={warrantyAccent} />
                     <View>
-                      <Text style={{ fontSize: 14, color: colors.mutedForeground }}>
+                      <Text style={{ fontSize: 14, color: mutedText, fontFamily: fonts.medium }}>
                         Extended Warranty
                       </Text>
                       {serviceRequest.calculatedPricing.warrantyOption && (
-                        <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 2 }}>
+                        <Text style={{ fontSize: 12, color: mutedText, marginTop: 2, fontFamily: fonts.medium }}>
                           ({serviceRequest.calculatedPricing.warrantyOption})
                         </Text>
                       )}
                     </View>
                   </View>
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#8B5CF6' }}>
+                  <Text style={{ fontSize: 14, fontFamily: fonts.medium, color: warrantyAccent }}>
                     ₹{serviceRequest.calculatedPricing.warrantyFee}
                   </Text>
                 </View>
@@ -1771,9 +1790,9 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
                 <View style={styles.paymentRow}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 }}>
                     <Icon name="shield" size={16} color={colors.success} />
-                    <Text style={{ fontSize: 14, color: colors.mutedForeground }}>Data Safety & Backup</Text>
+                    <Text style={{ fontSize: 14, color: mutedText, fontFamily: fonts.medium }}>Data Safety & Backup</Text>
                   </View>
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: colors.success }}>
+                  <Text style={{ fontSize: 14, fontFamily: fonts.medium, color: colors.success }}>
                     ₹{serviceRequest.calculatedPricing.dataSafetyFee}
                   </Text>
                 </View>
@@ -1787,8 +1806,8 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
                 marginTop: spacing.sm 
               }}>
                 <View style={styles.paymentRow}>
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: colors.foreground }}>Total Price</Text>
-                  <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.primary }}>
+                  <Text style={{ fontSize: 16, fontFamily: fonts.semibold, color: bodyColor }}>Total Price</Text>
+                  <Text style={{ fontSize: 18, fontFamily: fonts.bold, color: colors.primary }}>
                     {serviceRequest.adminFinalPrice
                       ? `₹${calculateTotalPayment().toFixed(2)}` 
                       : serviceRequest.calculatedPricing.finalChargeRange
@@ -1797,7 +1816,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
                   </Text>
                 </View>
                 {!serviceRequest.adminFinalPrice && (
-                  <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: spacing.xs }}>
+                  <Text style={{ fontSize: 12, color: mutedText, marginTop: spacing.xs, fontFamily: fonts.medium }}>
                     Final price will be set by admin after service completion
                   </Text>
                 )}
@@ -1818,26 +1837,26 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
                   borderWidth: 1,
                   borderColor: colors.primary + '30'
                 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.primary, marginBottom: spacing.sm }}>
+                  <Text style={{ fontSize: 12, fontFamily: fonts.semibold, color: colors.primary, marginBottom: spacing.sm }}>
                     Payment Distribution
                   </Text>
 
                   <View style={{ gap: spacing.xs }}>
                     <View style={styles.paymentRow}>
-                      <Text style={{ fontSize: 12, color: colors.primary }}>Total Amount to be Paid:</Text>
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: colors.primary }}>
+                      <Text style={{ fontSize: 12, color: colors.primary, fontFamily: fonts.medium }}>Total Amount to be Paid:</Text>
+                      <Text style={{ fontSize: 12, fontFamily: fonts.semibold, color: colors.primary }}>
                         ₹{serviceRequest.paymentBreakdown.totalCost}
                       </Text>
                     </View>
                     <View style={styles.paymentRow}>
-                      <Text style={{ fontSize: 12, color: colors.primary }}>Technician Earnings (80%):</Text>
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: colors.primary }}>
+                      <Text style={{ fontSize: 12, color: colors.primary, fontFamily: fonts.medium }}>Technician Earnings (80%):</Text>
+                      <Text style={{ fontSize: 12, fontFamily: fonts.semibold, color: colors.primary }}>
                         ₹{serviceRequest.paymentBreakdown.technicianEarnings}
                       </Text>
                     </View>
                     <View style={styles.paymentRow}>
-                      <Text style={{ fontSize: 12, color: colors.primary }}>Platform Fee (20%):</Text>
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: colors.primary }}>
+                      <Text style={{ fontSize: 12, color: colors.primary, fontFamily: fonts.medium }}>Platform Fee (20%):</Text>
+                      <Text style={{ fontSize: 12, fontFamily: fonts.semibold, color: colors.primary }}>
                         ₹{serviceRequest.paymentBreakdown.companyCommission}
                       </Text>
                     </View>
@@ -1877,7 +1896,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
           ) : (
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Payment History</Text>
-              <Text style={styles.detailRow}>No payment history available</Text>
+              <Text style={styles.detailLabel}>No payment history available</Text>
             </View>
           )
         }
@@ -2029,6 +2048,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Share your experience..."
+              placeholderTextColor={mutedText}
               value={reviewComment}
               onChangeText={setReviewComment}
               multiline
@@ -2084,7 +2104,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
                 />
               ) : (
                 <View style={{ alignItems: 'center', padding: spacing.lg }}>
-                  <Text style={{ fontSize: 16, color: colors.warning, fontWeight: '600', marginBottom: spacing.sm }}>
+                  <Text style={{ fontSize: 16, color: colors.warning, fontFamily: fonts.semibold, marginBottom: spacing.sm }}>
                     No estimated cost available for this service
                   </Text>
                   <View style={{
@@ -2095,10 +2115,10 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
                     padding: spacing.sm,
                     marginBottom: spacing.md,
                   }}>
-                    <Text style={{ fontSize: 14, color: colors.warning, marginBottom: spacing.sm }}>
+                    <Text style={{ fontSize: 14, color: colors.warning, marginBottom: spacing.sm, fontFamily: fonts.medium }}>
                       The vendor hasn't provided an estimated cost yet. Please contact the vendor directly or wait for them to update the cost.
                     </Text>
-                    <Text style={{ fontSize: 12, color: colors.warning }}>
+                    <Text style={{ fontSize: 12, color: colors.warning, fontFamily: fonts.medium }}>
                       Vendor Service Charge: ₹{serviceRequest.vendorServiceCharge || 'Not set'}
                       {'\n'}
                       Estimated Cost: ₹{serviceRequest.estimatedCost || 'Not set'}
@@ -2117,7 +2137,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
                       setShowPaymentModal(false)
                     }}
                   >
-                    <Text style={{ fontSize: 14, color: colors.foreground }}>
+                    <Text style={{ fontSize: 14, color: bodyColor, fontFamily: fonts.medium }}>
                       Close
                     </Text>
                   </TouchableOpacity>
@@ -2125,23 +2145,23 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
               )
             ) : (
               <View style={{ alignItems: 'center', padding: spacing.lg }}>
-                <Text style={{ fontSize: 16, color: colors.error, fontWeight: '600', marginBottom: spacing.sm }}>
+                <Text style={{ fontSize: 16, color: colors.error, fontFamily: fonts.semibold, marginBottom: spacing.sm }}>
                   Unable to load payment form. Missing required information:
                 </Text>
                 <View style={{ alignItems: 'flex-start', marginBottom: spacing.sm }}>
                   {!serviceRequest.assignedVendor && (
-                    <Text style={{ fontSize: 14, color: colors.mutedForeground }}>
+                    <Text style={{ fontSize: 14, color: mutedText, fontFamily: fonts.medium }}>
                       • No vendor assigned to this service
                     </Text>
                   )}
                   {(!serviceRequest.vendorServiceCharge || serviceRequest.vendorServiceCharge <= 0) &&
                    (!serviceRequest.estimatedCost || serviceRequest.estimatedCost <= 0) && (
-                    <Text style={{ fontSize: 14, color: colors.mutedForeground }}>
+                    <Text style={{ fontSize: 14, color: mutedText, fontFamily: fonts.medium }}>
                       • No cost information available (Vendor Charge: ₹{serviceRequest.vendorServiceCharge || 'Not set'}, Estimated: ₹{serviceRequest.estimatedCost || 'Not set'})
                     </Text>
                   )}
                 </View>
-                <Text style={{ fontSize: 12, color: colors.mutedForeground, textAlign: 'center' }}>
+                <Text style={{ fontSize: 12, color: mutedText, textAlign: 'center', fontFamily: fonts.medium }}>
                   Please contact support if this issue persists.
                 </Text>
                 <View style={{
@@ -2150,7 +2170,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
                   padding: spacing.sm,
                   marginTop: spacing.md,
                 }}>
-                  <Text style={{ fontSize: 10, color: colors.mutedForeground }}>
+                  <Text style={{ fontSize: 10, color: mutedText, fontFamily: fonts.medium }}>
                     Debug Info: Service ID: {serviceRequest._id?.slice(-8)}, Vendor: {serviceRequest.assignedVendor ? 'Assigned' : 'Not assigned'}, Vendor Charge: ₹{serviceRequest.vendorServiceCharge || 'Not set'}, Estimated: ₹{serviceRequest.estimatedCost || 'Not set'}
                   </Text>
                 </View>
@@ -2189,7 +2209,7 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
                 onPress={() => setShowCustomCancelDialog(false)}
                 disabled={isUpdatingStatus}
               >
-                <Icon name="x" size={16} color="#000000" />
+                <Icon name="x" size={16} color={bodyColor} />
                 <Text style={styles.cancelDialogGoBackText}>Go Back</Text>
               </TouchableOpacity>
 

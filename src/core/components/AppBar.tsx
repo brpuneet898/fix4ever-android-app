@@ -10,9 +10,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme';
 import { ThemeSelector } from './ThemeSelector';
 import Icon from 'react-native-vector-icons/Feather';
+import type { User } from '../api/auth';
 
 type AppBarProps = {
   isLoggedIn: boolean;
+  user?: User | null;
   onLoginPress: () => void;
   onSignupPress: () => void;
   onProfilePress: () => void;
@@ -23,6 +25,7 @@ type AppBarProps = {
 
 export function AppBar({
   isLoggedIn,
+  user,
   onLoginPress,
   onSignupPress,
   onProfilePress,
@@ -62,17 +65,13 @@ export function AppBar({
         },
       ]}
     >
-      <View style={[styles.barRow, { paddingBottom: spacing.sm }]}>
-        <View style={styles.logoRow}>
-          <View style={[styles.logoIcon, { backgroundColor: colors.primary }]}>
-            <Text style={styles.logoEmoji}>🛠</Text>
-          </View>
-          <Text style={[styles.brand, { color: colors.foreground }]}>
-            Fix4Ever
+      <View style={[styles.barRow, { paddingBottom: spacing.sm, justifyContent: 'center' }]}>
+        <View style={[styles.logoRow, { position: 'absolute', left: 0, right: 0, justifyContent: 'center' }]}>
+          <Text style={[styles.brand, { color: colors.foreground, fontFamily: 'Montserrat-Bold' }]}>
+            fix4ever
           </Text>
         </View>
-        <View style={styles.actionsRow}>
-          
+        <View style={[styles.actionsRow, { marginLeft: 'auto' }]}>          
           
           {isLoggedIn ? (
             <>
@@ -100,10 +99,26 @@ export function AppBar({
               activeOpacity={0.8}
               style={[
                 styles.profileAvatar,
-                { borderColor: colors.primary, backgroundColor: colors.card },
+                { 
+                  borderColor: colors.primary, 
+                  backgroundColor: colors.card,
+                  shadowColor: colors.primary,
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 2,
+                },
               ]}
             >
-              <Icon name="user" size={18} color={colors.primary} />
+              {user && user.username ? (
+                <Text style={[
+                  styles.initialText, 
+                  { color: colors.primary, fontFamily: 'Montserrat-Bold' }
+                ]}>
+                  {user.username.charAt(0).toUpperCase()}
+                </Text>
+              ) : (
+                <Icon name="user" size={18} color={colors.primary} />
+              )}
             </TouchableOpacity>
             </>
             
@@ -247,14 +262,14 @@ export function AppBar({
             <Icon
               name="log-out"
               size={16}
-              color={colors.destructive ?? colors.primary}
+              color={colors.destructive}
               style={styles.menuIcon}
             />
             <Text
               style={[
                 typography.bodySmall,
                 styles.menuText,
-                { color: colors.destructive ?? colors.primary },
+                { color: colors.destructive },
               ]}
             >
               Log out
@@ -306,13 +321,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   profileAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+    borderWidth: 1.5,
     marginLeft: 4,
+  },
+  initialText: {
+    fontSize: 16,
+    lineHeight: 20,
   },
   chip: {
     flexDirection: 'row',
