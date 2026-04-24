@@ -6,9 +6,10 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../core/theme';
 import { Button } from '../../core/components';
@@ -70,9 +71,27 @@ const toDraftCard = (draft: DraftServiceRequest): DraftCard => {
 export function DraftsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
-  const { colors, spacing, typography } = useTheme();
+  const { spacing, typography, isDark } = useTheme();
   const [drafts, setDrafts] = useState<DraftCard[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const brandBlue = '#01325D';
+  const primaryBlue = isDark ? '#1C4E7E' : brandBlue;
+  const screenBg = isDark ? '#242D3B' : '#FFFFFF';
+  const headingColor = isDark ? '#F3F7FF' : '#082C50';
+  const subtitleColor = isDark ? '#C6D4E8' : '#5B6B80';
+  const mutedText = isDark ? '#D0D8E5' : '#3A3A3A';
+  const cardBg = isDark ? '#2D394A' : '#FFFFFF';
+  const cardBorder = isDark ? '#3F5169' : '#E4E9F1';
+  const labelColor = isDark ? '#B7C4D8' : '#667085';
+  const bodyText = isDark ? '#F2F6FD' : '#111827';
+
+  const fonts = {
+    regular: 'Montserrat-Regular',
+    medium: 'Montserrat-Medium',
+    semibold: 'Montserrat-SemiBold',
+    bold: 'Montserrat-Bold',
+  } as const;
 
   const loadDrafts = useCallback(async () => {
     setLoading(true);
@@ -97,167 +116,246 @@ export function DraftsScreen() {
   );
 
   const getCompletionColor = (percentage: number) => {
-    if (percentage >= 75) return colors.success;
-    if (percentage >= 50) return colors.warning;
-    return colors.mutedForeground;
+    if (percentage >= 75) return isDark ? '#87E0B2' : '#14804A';
+    if (percentage >= 50) return isDark ? '#FFD7A3' : '#B96800';
+    return isDark ? '#C7D2E2' : '#6B7788';
   };
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    scroll: {
-      flex: 1,
-    },
-    scrollContent: {
-      paddingHorizontal: spacing.lg,
-      paddingTop: insets.top + spacing.lg,
-      paddingBottom: insets.bottom + spacing.xxl,
-    },
-    header: {
-      marginBottom: spacing.lg,
-    },
-    title: {
-      ...typography.title,
-      fontSize: 28,
-      color: colors.foreground,
-      marginBottom: spacing.sm,
-    },
-    subtitle: {
-      ...typography.body,
-      color: colors.mutedForeground,
-    },
-    expiryNote: {
-      ...typography.caption,
-      color: colors.mutedForeground,
-      marginTop: spacing.xs,
-    },
-    draftCard: {
-      backgroundColor: colors.card,
-      padding: spacing.lg,
-      borderRadius: 12,
-      marginBottom: spacing.md,
-      shadowColor: colors.foreground,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 4,
-      elevation: 2,
-    },
-    draftHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: spacing.md,
-    },
-    draftTitle: {
-      ...typography.subtitle,
-      color: colors.foreground,
-      flex: 1,
-      marginRight: spacing.sm,
-    },
-    completionBadge: {
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: 6,
-    },
-    completionText: {
-      ...typography.caption,
-      fontSize: 10,
-      fontWeight: '600',
-    },
-    draftDetails: {
-      gap: spacing.sm,
-      marginBottom: spacing.md,
-    },
-    detailRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-    },
-    detailLabel: {
-      ...typography.bodySmall,
-      color: colors.mutedForeground,
-    },
-    detailValue: {
-      ...typography.bodySmall,
-      color: colors.foreground,
-      fontWeight: '500',
-      flex: 1,
-      textAlign: 'right',
-    },
-    description: {
-      ...typography.bodySmall,
-      color: colors.mutedForeground,
-      marginBottom: spacing.md,
-      lineHeight: 16,
-    },
-    draftFooter: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingTop: spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-    },
-    lastSaved: {
-      ...typography.caption,
-      color: colors.mutedForeground,
-    },
-    actions: {
-      flexDirection: 'row',
-      gap: spacing.sm,
-    },
-    actionButton: {
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: 4,
-    },
-    editButton: {
-      backgroundColor: colors.primary + '20',
-    },
-    deleteButton: {
-      backgroundColor: colors.destructive + '20',
-    },
-    actionText: {
-      ...typography.caption,
-      fontSize: 10,
-      fontWeight: '600',
-    },
-    editText: {
-      color: colors.primary,
-    },
-    deleteText: {
-      color: colors.destructive,
-    },
-    progressBar: {
-      height: 3,
-      backgroundColor: colors.border,
-      borderRadius: 1.5,
-      marginTop: spacing.sm,
-      overflow: 'hidden',
-    },
-    progressFill: {
-      height: '100%',
-      borderRadius: 1.5,
-    },
-    emptyState: {
-      alignItems: 'center',
-      paddingVertical: spacing.xxl,
-    },
-    emptyTitle: {
-      ...typography.subtitle,
-      color: colors.foreground,
-      marginBottom: spacing.sm,
-    },
-    emptySubtitle: {
-      ...typography.body,
-      color: colors.mutedForeground,
-      textAlign: 'center',
-    },
-    createButton: {
-      marginBottom: spacing.lg,
-    },
-  });
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: screenBg,
+        },
+        fixedTop: {
+          paddingTop: insets.top + spacing.lg,
+          paddingHorizontal: spacing.lg,
+          paddingBottom: spacing.md,
+          backgroundColor: screenBg,
+          borderBottomWidth: 1,
+          borderBottomColor: cardBorder,
+        },
+        scroll: {
+          flex: 1,
+          backgroundColor: screenBg,
+        },
+        scrollContent: {
+          paddingHorizontal: spacing.lg,
+          paddingTop: spacing.md,
+          paddingBottom: insets.bottom + spacing.xxl,
+        },
+        header: {
+          marginBottom: spacing.md,
+        },
+        title: {
+          ...typography.title,
+          fontSize: 30,
+          color: headingColor,
+          marginBottom: spacing.xs,
+          fontFamily: fonts.bold,
+        },
+        subtitle: {
+          ...typography.body,
+          color: subtitleColor,
+          fontFamily: fonts.medium,
+        },
+        expiryNote: {
+          ...typography.body,
+          color: mutedText,
+          marginTop: spacing.xs,
+          fontFamily: fonts.medium,
+          fontSize: 13,
+          lineHeight: 18,
+        },
+        createButton: {
+          marginBottom: spacing.xs,
+        },
+        createRequestButton: {
+          borderRadius: 14,
+          minHeight: 56,
+          backgroundColor: primaryBlue,
+          shadowColor: '#000000',
+          shadowOpacity: isDark ? 0.26 : 0.16,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 5 },
+          elevation: 4,
+          borderWidth: 0,
+        },
+        createRequestButtonText: {
+          color: '#FFFFFF',
+          fontFamily: fonts.semibold,
+          fontSize: 16,
+          lineHeight: 20,
+        },
+        draftCard: {
+          backgroundColor: cardBg,
+          padding: spacing.lg,
+          borderRadius: 18,
+          marginBottom: spacing.md,
+          borderWidth: 1,
+          borderColor: cardBorder,
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: isDark ? 0.18 : 0.08,
+          shadowRadius: 14,
+          elevation: 4,
+        },
+        draftHeader: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: spacing.md,
+        },
+        draftTitle: {
+          color: headingColor,
+          flex: 1,
+          marginRight: spacing.sm,
+          fontFamily: fonts.bold,
+          fontSize: 18,
+          lineHeight: 24,
+          textTransform: 'uppercase',
+        },
+        completionBadge: {
+          paddingHorizontal: spacing.sm,
+          paddingVertical: spacing.xs,
+          borderRadius: 8,
+        },
+        completionText: {
+          color: bodyText,
+          fontFamily: fonts.semibold,
+          fontSize: 12,
+          lineHeight: 16,
+        },
+        draftDetails: {
+          gap: spacing.sm,
+          marginBottom: spacing.md,
+        },
+        detailRow: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        },
+        detailLabel: {
+          color: labelColor,
+          fontFamily: fonts.medium,
+          fontSize: 15,
+          lineHeight: 20,
+        },
+        detailValue: {
+          color: bodyText,
+          fontFamily: fonts.semibold,
+          fontSize: 15,
+          lineHeight: 20,
+          flex: 1,
+          textAlign: 'right',
+          marginLeft: spacing.md,
+        },
+        description: {
+          color: labelColor,
+          marginBottom: spacing.md,
+          fontFamily: fonts.medium,
+          fontSize: 14,
+          lineHeight: 20,
+        },
+        progressBar: {
+          height: 4,
+          backgroundColor: cardBorder,
+          borderRadius: 2,
+          marginBottom: spacing.md,
+          overflow: 'hidden',
+        },
+        progressFill: {
+          height: '100%',
+          borderRadius: 2,
+        },
+        draftFooter: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingTop: spacing.md,
+          borderTopWidth: 1,
+          borderTopColor: cardBorder,
+        },
+        lastSaved: {
+          color: labelColor,
+          fontFamily: fonts.medium,
+          fontSize: 12,
+          lineHeight: 16,
+          flex: 1,
+          paddingRight: spacing.sm,
+        },
+        actions: {
+          flexDirection: 'row',
+          gap: spacing.sm,
+        },
+        actionButton: {
+          paddingHorizontal: spacing.sm,
+          paddingVertical: spacing.xs,
+          borderRadius: 8,
+        },
+        editButton: {
+          backgroundColor: isDark ? 'rgba(156,206,255,0.2)' : 'rgba(1,50,93,0.12)',
+        },
+        deleteButton: {
+          backgroundColor: isDark ? 'rgba(255,122,122,0.2)' : 'rgba(220,38,38,0.12)',
+        },
+        actionText: {
+          fontFamily: fonts.semibold,
+          fontSize: 12,
+          lineHeight: 16,
+        },
+        editText: {
+          color: isDark ? '#9BC7FF' : primaryBlue,
+        },
+        deleteText: {
+          color: isDark ? '#FF9E9E' : '#B42318',
+        },
+        loadingState: {
+          alignItems: 'center',
+          paddingVertical: spacing.xl,
+        },
+        emptyState: {
+          alignItems: 'center',
+          paddingVertical: spacing.xl,
+          backgroundColor: cardBg,
+          borderRadius: 18,
+          borderWidth: 1,
+          borderColor: cardBorder,
+          paddingHorizontal: spacing.lg,
+        },
+        emptyTitle: {
+          fontSize: 20,
+          lineHeight: 26,
+          color: headingColor,
+          marginBottom: spacing.sm,
+          fontFamily: fonts.bold,
+        },
+        emptySubtitle: {
+          fontSize: 14,
+          lineHeight: 21,
+          color: subtitleColor,
+          textAlign: 'center',
+          fontFamily: fonts.medium,
+        },
+      }),
+    [
+      spacing,
+      typography,
+      insets,
+      isDark,
+      screenBg,
+      cardBorder,
+      headingColor,
+      subtitleColor,
+      mutedText,
+      primaryBlue,
+      cardBg,
+      bodyText,
+      labelColor,
+      fonts,
+    ]
+  );
 
   const handleEditDraft = (draftId: string) => {
     if (typeof navigation.push === 'function') {
@@ -296,8 +394,8 @@ export function DraftsScreen() {
   }, [loading]);
 
   return (
-    <SafeAreaProvider>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+    <View style={styles.container}>
+      <View style={styles.fixedTop}>
         <View style={styles.header}>
           <Text style={styles.title}>Drafts</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
@@ -309,14 +407,37 @@ export function DraftsScreen() {
         <View style={styles.createButton}>
           <Button
             title="Create New Request"
-            variant="outline"
+            variant="primary"
+            style={styles.createRequestButton}
+            textStyle={styles.createRequestButtonText}
             onPress={() => {
               navigation.navigate('ServiceRequestStack');
             }}
           />
         </View>
 
-        {drafts.length === 0 ? (
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={loadDrafts}
+            tintColor={primaryBlue}
+            colors={[primaryBlue]}
+            progressBackgroundColor={cardBg}
+          />
+        }
+      >
+
+        {loading && drafts.length === 0 ? (
+          <View style={styles.loadingState}>
+            <ActivityIndicator size="large" color={primaryBlue} />
+          </View>
+        ) : drafts.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>No Drafts</Text>
             <Text style={styles.emptySubtitle}>
@@ -331,7 +452,7 @@ export function DraftsScreen() {
                 <View
                   style={[
                     styles.completionBadge,
-                    { backgroundColor: getCompletionColor(draft.completionPercentage) + '20' },
+                    { backgroundColor: `${getCompletionColor(draft.completionPercentage)}20` },
                   ]}
                 >
                   <Text
@@ -393,6 +514,6 @@ export function DraftsScreen() {
           ))
         )}
       </ScrollView>
-    </SafeAreaProvider>
+    </View>
   );
 }

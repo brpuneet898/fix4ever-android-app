@@ -5,6 +5,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme';
@@ -184,98 +186,107 @@ export function AppBar({
         </View>
       </View>
       {isLoggedIn && (
-        <Animated.View
-          pointerEvents={menuOpen ? 'auto' : 'none'}
-          style={[
-            styles.dropdown,
-            {
-              opacity: menuAnim,
-              transform: [{ translateY: menuTranslateY }],
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-            },
-          ]}
+        <Modal
+          visible={menuOpen}
+          transparent
+          animationType="none"
+          onRequestClose={() => setMenuOpen(false)}
         >
-          <TouchableOpacity
-            style={styles.menuItem}
-            activeOpacity={0.8}
-            onPress={() => {
-              setMenuOpen(false);
-              onProfilePress();
-            }}
-          >
-            <Icon
-              name="user"
-              size={16}
-              color={colors.foreground}
-              style={styles.menuIcon}
-            />
-            <Text style={[typography.bodySmall, styles.menuText]}>
-              Profile & settings
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuItem}
-            activeOpacity={0.8}
-            onPress={() => {
-              setMenuOpen(false);
-              onNotificationsPress();
-            }}
-          >
-            <Icon
-              name="bell"
-              size={16}
-              color={colors.foreground}
-              style={styles.menuIcon}
-            />
-            <Text style={[typography.bodySmall, styles.menuText]}>
-              Notifications
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuItem}
-            activeOpacity={0.8}
-            onPress={() => {
-              setMenuOpen(false);
-              onOpenTerms?.();
-            }}
-          >
-            <Icon
-              name="file-text"
-              size={16}
-              color={colors.foreground}
-              style={styles.menuIcon}
-            />
-            <Text style={[typography.bodySmall, styles.menuText]}>
-              Terms & policies
-            </Text>
-          </TouchableOpacity>
-          <View style={styles.menuDivider} />
-          <TouchableOpacity
-            style={styles.menuItem}
-            activeOpacity={0.8}
-            onPress={() => {
-              setMenuOpen(false);
-              onLogoutPress();
-            }}
-          >
-            <Icon
-              name="log-out"
-              size={16}
-              color={colors.destructive}
-              style={styles.menuIcon}
-            />
-            <Text
+          <View style={styles.modalLayer} pointerEvents="box-none">
+            <Pressable style={styles.backdrop} onPress={() => setMenuOpen(false)} />
+            <Animated.View
               style={[
-                typography.bodySmall,
-                styles.menuText,
-                { color: colors.destructive },
+                styles.dropdown,
+                {
+                  opacity: menuAnim,
+                  transform: [{ translateY: menuTranslateY }],
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                },
               ]}
             >
-              Log out
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
+              <TouchableOpacity
+                style={styles.menuItem}
+                activeOpacity={0.8}
+                onPress={() => {
+                  setMenuOpen(false);
+                  onProfilePress();
+                }}
+              >
+                <Icon
+                  name="user"
+                  size={16}
+                  color={colors.foreground}
+                  style={styles.menuIcon}
+                />
+                <Text style={[typography.bodySmall, styles.menuText]}>
+                  Profile & settings
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.menuItem}
+                activeOpacity={0.8}
+                onPress={() => {
+                  setMenuOpen(false);
+                  onNotificationsPress();
+                }}
+              >
+                <Icon
+                  name="bell"
+                  size={16}
+                  color={colors.foreground}
+                  style={styles.menuIcon}
+                />
+                <Text style={[typography.bodySmall, styles.menuText]}>
+                  Notifications
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.menuItem}
+                activeOpacity={0.8}
+                onPress={() => {
+                  setMenuOpen(false);
+                  onOpenTerms?.();
+                }}
+              >
+                <Icon
+                  name="file-text"
+                  size={16}
+                  color={colors.foreground}
+                  style={styles.menuIcon}
+                />
+                <Text style={[typography.bodySmall, styles.menuText]}>
+                  Terms & policies
+                </Text>
+              </TouchableOpacity>
+              <View style={styles.menuDivider} />
+              <TouchableOpacity
+                style={styles.menuItem}
+                activeOpacity={0.8}
+                onPress={() => {
+                  setMenuOpen(false);
+                  onLogoutPress();
+                }}
+              >
+                <Icon
+                  name="log-out"
+                  size={16}
+                  color={colors.destructive}
+                  style={styles.menuIcon}
+                />
+                <Text
+                  style={[
+                    typography.bodySmall,
+                    styles.menuText,
+                    { color: colors.destructive },
+                  ]}
+                >
+                  Log out
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+        </Modal>
       )}
     </View>
   );
@@ -364,6 +375,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
+  },
+  modalLayer: {
+    flex: 1,
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
   },
   menuItem: {
     flexDirection: 'row',

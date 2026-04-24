@@ -83,7 +83,7 @@ export function ServiceRequestsScreen() {
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const { colors, spacing, isDark } = useTheme();
+  const { colors, spacing, typography, isDark } = useTheme();
 
   const fonts = {
     regular: 'Montserrat-Regular',
@@ -161,34 +161,41 @@ export function ServiceRequestsScreen() {
   const styles = useMemo(
       ()=>
         StyleSheet.create({
+          container: {
+            flex: 1,
+            backgroundColor: screenBg,
+          },
+          fixedTop: {
+            paddingTop: insets.top + spacing.lg,
+            paddingHorizontal: spacing.lg,
+            paddingBottom: spacing.md,
+            backgroundColor: screenBg,
+            borderBottomWidth: 1,
+            borderBottomColor: cardBorder,
+          },
           scroll: {
             flex: 1,
             backgroundColor: screenBg,
           },
           scrollContent: {
             paddingHorizontal: spacing.lg,
-            paddingTop: insets.top + spacing.md,
+            paddingTop: spacing.md,
             paddingBottom: insets.bottom + spacing.xl,
           },
           header: {
-            marginBottom: spacing.lg + spacing.xs,
-            alignItems: 'center',
+            marginBottom: spacing.md,
           },
           title: {
-            fontSize: 38,
-            lineHeight: 58,
-            letterSpacing: -0.6,
+            ...typography.title,
+            fontSize: 30,
             color: headingColor,
             marginBottom: spacing.xs,
             fontFamily: fonts.bold,
-            textAlign: 'center',
           },
           subtitle: {
-            fontSize: 17,
-            lineHeight: 24,
+            ...typography.body,
             color: subtitleColor,
             fontFamily: fonts.medium,
-            textAlign: 'center',
           },
           requestCard: {
             backgroundColor: cardBg,
@@ -301,23 +308,11 @@ export function ServiceRequestsScreen() {
             fontFamily: fonts.medium,
           },
         })
-      ,[spacing, insets, screenBg, headingColor, subtitleColor, cardBg, cardBorder, mutedLabel, bodyText, primaryBlue, isDark, fonts])
+      ,[spacing, typography, insets, screenBg, headingColor, subtitleColor, cardBg, cardBorder, mutedLabel, bodyText, primaryBlue, isDark, fonts])
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={loading}
-          onRefresh={getServiceRequests}
-          tintColor={primaryBlue}
-          colors={[primaryBlue]}
-          progressBackgroundColor={cardBg}
-        />
-      }
-    >
+    <View style={styles.container}>
+      <View style={styles.fixedTop}>
         <View style={styles.header}>
           <Text style={styles.title}>Service Requests</Text>
           <Text style={styles.subtitle}>Track and manage your repair requests</Text>
@@ -334,6 +329,22 @@ export function ServiceRequestsScreen() {
           })} 
           />
         </View>
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={getServiceRequests}
+            tintColor={primaryBlue}
+            colors={[primaryBlue]}
+            progressBackgroundColor={cardBg}
+          />
+        }
+      >
         
 
         {serviceRequests.length === 0 ? (
@@ -382,6 +393,7 @@ export function ServiceRequestsScreen() {
           ))
         )}
       </ScrollView>
+    </View>
   );
 }
 
