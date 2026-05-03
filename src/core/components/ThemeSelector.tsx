@@ -21,7 +21,7 @@ export function ThemeSelector({
   onModeChange,
   isCompact = false,
 }: ThemeSelectorProps) {
-  const { themeMode, setThemeMode } = useTheme();
+  const { themeMode, setThemeMode, colors, isDark } = useTheme();
   const resolvedMode = currentMode ?? themeMode;
   const resolvedModeChange = onModeChange ?? setThemeMode;
 
@@ -47,7 +47,11 @@ export function ThemeSelector({
         onPressIn={handleToggle}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        {resolvedMode === 'dark' ? <Sun width={20} height={20} stroke={'#ffffff'} /> : <Moon width={20} height={20} stroke={"#444444"}/>}
+        {resolvedMode === 'dark' ? (
+          <Sun width={20} height={20} stroke={isDark ? colors.foreground : '#ffffff'} />
+        ) : (
+          <Moon width={20} height={20} stroke={isDark ? colors.mutedForeground : '#444444'} />
+        )}
       </TouchableOpacity>
     </View>
   );

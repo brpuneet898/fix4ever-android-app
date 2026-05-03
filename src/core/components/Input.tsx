@@ -46,7 +46,7 @@ export function Input({
         style={[
           styles.input,
           {
-            backgroundColor: colors.background,
+            backgroundColor: colors.card,
             borderColor: error 
               ? colors.destructive 
               : isFocused 

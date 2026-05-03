@@ -52,7 +52,7 @@ export function ReviewStepScreen({
     } as ViewStyle,
     sectionTitle: {
       fontSize: 18,
-      fontWeight: '600' as const,
+      fontWeight: '700' as const,
       color: colors.foreground,
       marginBottom: spacing.md,
     } as TextStyle,
@@ -60,13 +60,19 @@ export function ReviewStepScreen({
       backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 8,
+      borderRadius: 18,
       padding: spacing.md,
       marginBottom: spacing.md,
+      shadowColor: '#000',
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 2,
     } as ViewStyle,
     optionText: {
       fontSize: 14,
       color: colors.foreground,
+      lineHeight: 20,
     } as TextStyle,
   });
 
@@ -124,7 +130,9 @@ export function ReviewStepScreen({
         {calculatedPricing && (
           <View style={styles.input}>
             <Text style={styles.optionText}>
-              Price Range: ₹{calculatedPricing.finalChargeRange.min} - ₹{calculatedPricing.finalChargeRange.max}
+              {calculatedPricing.displayLabel
+                ? `Price: ${calculatedPricing.displayLabel}`
+                : `Price Range: ₹${calculatedPricing.finalChargeRange.min} - ₹${calculatedPricing.finalChargeRange.max}`}
             </Text>
           </View>
         )}

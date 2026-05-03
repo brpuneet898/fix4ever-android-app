@@ -2,13 +2,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { 
   View, 
   Text, 
-  TouchableOpacity, Alert,
+  TouchableOpacity,
   PermissionsAndroid,
   Platform,
 
  } from 'react-native';
 //import { createStackNavigator } from '@react-navigation/stack';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import Icon from 'react-native-vector-icons/Feather';
 import { request } from '../../core/api';
 import { useRoute } from '@react-navigation/native';
 import Geolocation from 'react-native-geolocation-service';
@@ -42,8 +43,10 @@ import {
   ReviewStepScreen,
 } from './steps';
 import { Button } from '../../core/components';
+import { ThemedAlertDialog } from '../../core/components/ThemedAlertDialog';
 import { useTheme } from '../../core/theme';
 import { useAuth } from '../../lib/contexts/auth-context';
+import { getProblemPricingFromSelection } from '../../lib/service-pricing';
 import {
   getServiceAreaSummaryText,
   isWithinServiceArea,
@@ -191,35 +194,74 @@ const resolveDraftStepScreen = (draft: DraftServiceRequest): (typeof STACK_STEP_
 
 // Custom Header Component
 const StepHeader = ({ onClose, routeName }: { onClose: () => void; routeName: string }) => {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, borderRadius } = useTheme();
   const stepIndex = getStepIndex(routeName);
   const title = `${stepIndex + 1}/7 ${STEPS[stepIndex]?.title || 'Service Request'}`;
   
   return (
     <View style={{
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      backgroundColor: colors.card,
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.sm,
+      backgroundColor: colors.background,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
     }}>
-      <TouchableOpacity
-        onPress={onClose}
-        style={{ marginRight: spacing.md }}
-      >
-        <Text style={{ color: colors.foreground, fontSize: 24 }}>←</Text>
-      </TouchableOpacity>
-      <Text style={{
-        fontSize: 18,
-        fontWeight: '600' as const,
-        color: colors.foreground,
-        flex: 1,
+      <View style={{
+        flexDirection: 'row' as const,
+        alignItems: 'center' as const,
+        gap: spacing.sm,
+        marginBottom: spacing.sm,
       }}>
-        {title}
-      </Text>
-      <View style={{ width: 32 }} />
+        <TouchableOpacity
+          onPress={onClose}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: borderRadius.full,
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 0,
+            backgroundColor: colors.card,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
+        >
+          <Icon name="arrow-left" size={20} color={colors.foreground} />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={{
+            fontSize: 12,
+            fontWeight: '700' as const,
+            color: colors.mutedForeground,
+            textTransform: 'uppercase',
+            letterSpacing: 0.8,
+            marginBottom: 2,
+          }}>
+            Request Flow
+          </Text>
+          <Text style={{
+            fontSize: 18,
+            fontWeight: '700' as const,
+            color: colors.foreground,
+          }}>
+            {title}
+          </Text>
+        </View>
+      </View>
+      <View style={{
+        height: 6,
+        borderRadius: borderRadius.full,
+        backgroundColor: colors.muted,
+        overflow: 'hidden',
+      }}>
+        <View style={{
+          width: `${Math.max(1, stepIndex + 1) * 100 / STEPS.length}%`,
+          height: '100%',
+          borderRadius: borderRadius.full,
+          backgroundColor: colors.primary,
+        }} />
+      </View>
     </View>
   );
 };
@@ -260,6 +302,11 @@ export function ServiceRequestStack({
   // Location states
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [popup, setPopup] = useState<{
+    title: string;
+    message: string;
+    variant?: 'info' | 'success' | 'warning' | 'error';
+  } | null>(null);
 
 
   // Address autocomplete state
@@ -310,10 +357,30 @@ export function ServiceRequestStack({
     });
 
   const calculatedPricing = useMemo(() => {
-    return {
-      finalChargeRange: { min: 500, max: 1500 },
-    };
-  }, []);
+    const selectedProblemPricing = formData.knowsProblem
+      ? getProblemPricingFromSelection({
+          mainProblemCategory: formData.mainProblem?.title || formData.problemType || '',
+          subProblem: formData.subProblem?.title || '',
+          relatedBehavior: formData.relationalBehaviors[0]?.title || '',
+        })
+      : null;
+
+    return (
+      selectedProblemPricing || {
+        displayLabel: '₹500 - ₹1,500',
+        finalChargeRange: { min: 500, max: 1500 },
+        breakdown: ['Estimated price range'],
+        matched: false,
+        requiresManualQuote: false,
+      }
+    );
+  }, [
+    formData.knowsProblem,
+    formData.mainProblem,
+    formData.problemType,
+    formData.relationalBehaviors,
+    formData.subProblem,
+  ]);
 
   const getIssueLevelForPayload = useCallback(() => {
     const raw =
@@ -631,6 +698,117 @@ export function ServiceRequestStack({
     // Helper functions
       const updateFormData = useCallback((field: keyof FormData, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+
+        const hasText = (v: any) => typeof v === 'string' && v.trim().length > 0;
+
+        setErrors(prevErrors => {
+          if (!prevErrors || Object.keys(prevErrors).length === 0) {
+            return prevErrors;
+          }
+
+          const nextErrors = { ...prevErrors };
+
+          const clearError = (key: string) => {
+            if (nextErrors[key]) {
+              delete nextErrors[key];
+            }
+          };
+
+          switch (field) {
+            case 'requestType':
+              if (value) {
+                clearError('requestType');
+              }
+              break;
+            case 'serviceType':
+              if (value) {
+                clearError('serviceType');
+              }
+              break;
+            case 'userName':
+              if (hasText(value)) {
+                clearError('userName');
+              }
+              break;
+            case 'userPhone':
+              if (typeof value === 'string' && /^\d{10}$/.test(value)) {
+                clearError('userPhone');
+              }
+              break;
+            case 'beneficiaryName':
+              if (hasText(value)) {
+                clearError('beneficiaryName');
+              }
+              break;
+            case 'beneficiaryPhone':
+              if (typeof value === 'string' && /^\d{10}$/.test(value)) {
+                clearError('beneficiaryPhone');
+              }
+              break;
+            case 'address':
+              if (hasText(value)) {
+                clearError('address');
+              }
+              break;
+            case 'city':
+              if (hasText(value)) {
+                clearError('city');
+              }
+              break;
+            case 'latitude':
+            case 'longitude':
+              if (Number.isFinite(Number(value))) {
+                clearError('location');
+              }
+              break;
+            case 'brand':
+              if (hasText(value)) {
+                clearError('brand');
+              }
+              break;
+            case 'model':
+              if (hasText(value)) {
+                clearError('model');
+              }
+              break;
+            case 'mainProblem':
+              if (value?.title) {
+                clearError('mainProblem');
+              }
+              break;
+            case 'subProblem':
+              if (value?.title) {
+                clearError('subProblem');
+              }
+              break;
+            case 'relationalBehaviors':
+              if (Array.isArray(value) && value.length > 0) {
+                clearError('relationalBehaviors');
+              }
+              break;
+            case 'problemDescription':
+              if (hasText(value)) {
+                clearError('problemDescription');
+              }
+              break;
+            case 'preferredDate':
+              if (hasText(value)) {
+                clearError('preferredDate');
+              }
+              break;
+            case 'preferredTime':
+              if (hasText(value)) {
+                clearError('preferredTime');
+              }
+              break;
+            default:
+              break;
+          }
+
+          return Object.keys(nextErrors).length === Object.keys(prevErrors).length
+            ? prevErrors
+            : nextErrors;
+        });
       }, []);
 
     const getAllBrands = async () => {
@@ -862,10 +1040,11 @@ export function ServiceRequestStack({
           `Location is outside service area. We currently serve within ${getServiceAreaSummaryText()}.`
         );
         setIsGettingLocation(false);
-        Alert.alert(
-          'Location Not Serviceable',
-          `We currently serve locations within ${getServiceAreaSummaryText()} only.`
-        );
+        setPopup({
+          title: 'Location Not Serviceable',
+          message: `We currently serve locations within ${getServiceAreaSummaryText()} only.`,
+          variant: 'warning',
+        });
         return;
       }
 
@@ -879,12 +1058,11 @@ export function ServiceRequestStack({
 
       setIsGettingLocation(false);
       setLocationError(null);
-      
-      Alert.alert(
-        'Location Detected',
-        `Your location has been detected successfully.\nLatitude: ${latitude.toFixed(6)}\nLongitude: ${longitude.toFixed(6)}`,
-        [{ text: 'OK' }]
-      );
+      setPopup({
+        title: 'Location Detected',
+        message: `Your location has been detected successfully.\nLatitude: ${latitude.toFixed(6)}\nLongitude: ${longitude.toFixed(6)}`,
+        variant: 'success',
+      });
     } catch (error) {
       const locationError = error as { code?: number };
 
@@ -1013,7 +1191,11 @@ export function ServiceRequestStack({
 
         setSearchQuery("");
     } else {
-        Alert.alert('Error', 'Please fill in all required fields');
+        setPopup({
+          title: 'Missing Required Fields',
+          message: 'Please fill in all required fields before continuing.',
+          variant: 'error',
+        });
     }
   };
 
@@ -1073,7 +1255,11 @@ export function ServiceRequestStack({
       const currentRoute = currentNavigation.getState();
       const stepIndex = getStepIndex(currentRoute.routes[currentRoute.index].name);
       if (!validateCurrentStep(stepIndex)) {
-        Alert.alert('Error', 'Please fill in all required fields');
+        setPopup({
+          title: 'Missing Required Fields',
+          message: 'Please fill in all required fields before continuing.',
+          variant: 'error',
+        });
         return;
       }
   
@@ -1123,13 +1309,26 @@ export function ServiceRequestStack({
           },
         });  
         if (resp?.data?.success) {
-          Alert.alert('Success', 'Service request submitted successfully!');
+          setPopup({
+            title: 'Success',
+            message: 'Service request submitted successfully!',
+            variant: 'success',
+          });
           navigation.goBack();
         } else {
-          Alert.alert('Error', resp?.data?.message || 'Failed to submit request');
+          setPopup({
+            title: 'Error',
+            message: resp?.data?.message || 'Failed to submit request',
+            variant: 'error',
+          });
         }
       } catch (error) {
         setError('Failed to submit request');
+        setPopup({
+          title: 'Error',
+          message: 'Failed to submit request',
+          variant: 'error',
+        });
       } finally {
         setIsSubmitting(false);
       }
@@ -1144,12 +1343,20 @@ export function ServiceRequestStack({
   }
 
   return (
-    <Stack.Navigator
-      initialRouteName={initialStepName}
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
+    <>
+      <ThemedAlertDialog
+        visible={Boolean(popup)}
+        title={popup?.title || ''}
+        message={popup?.message || ''}
+        variant={popup?.variant || 'info'}
+        onDismiss={() => setPopup(null)}
+      />
+      <Stack.Navigator
+        initialRouteName={initialStepName}
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
       <Stack.Screen name="Contact">
         {(props) => (
           <View style={{ flex: 1 }}>
@@ -1170,6 +1377,9 @@ export function ServiceRequestStack({
               getCurrentLocation={getCurrentLocation}
               isGettingLocation={isGettingLocation}
               locationError={locationError}
+              showPopup={(title: string, message: string, variant?: 'info' | 'success' | 'warning' | 'error') =>
+                setPopup({ title, message, variant })
+              }
             />
             <NavigationFooter
               canGoBack={false}
@@ -1298,6 +1508,9 @@ export function ServiceRequestStack({
               errors={errors}
               onNext={() => nextStep(props.navigation)}
               onBack={() => prevStep(props.navigation)}
+              showPopup={(title: string, message: string, variant?: 'info' | 'success' | 'warning' | 'error') =>
+                setPopup({ title, message, variant })
+              }
             />
             <NavigationFooter
               canGoBack={true}
@@ -1337,7 +1550,8 @@ export function ServiceRequestStack({
           </View>
         )}
       </Stack.Screen>
-    </Stack.Navigator>
+      </Stack.Navigator>
+    </>
   );
 }
 
@@ -1372,7 +1586,12 @@ function NavigationFooter({
           title="Back"
           onPress={onBack}
           variant="outline"
-          style={{ flex: 1 }}
+          style={{
+            flex: 1,
+            backgroundColor: colors.background,
+            borderColor: colors.ring,
+          }}
+          textStyle={{ color: colors.foreground }}
         />
       ) : (
         <View style={{ flex: 1 }} />

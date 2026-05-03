@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Alert,
   StyleSheet,
   ViewStyle,
   TextStyle,
@@ -29,6 +28,7 @@ interface ImagesStepScreenProps {
   errors: Record<string, string>;
   onNext: () => void;
   onBack: () => void;
+  showPopup: (title: string, message: string, variant?: 'info' | 'success' | 'warning' | 'error') => void;
 }
 
 export function ImagesStepScreen({
@@ -37,6 +37,7 @@ export function ImagesStepScreen({
   errors,
   onNext,
   onBack,
+  showPopup,
 }: ImagesStepScreenProps) {
   const { colors, spacing, typography } = useTheme();
   const [selectedImages, setSelectedImages] = useState<File[]>(formData.issueImages || []);
@@ -117,7 +118,7 @@ export function ImagesStepScreen({
     hideImagePickerModal();
     const hasPermission = await requestCameraPermission();
     if (!hasPermission) {
-      Alert.alert('Permission Denied', 'Camera permission is required to take photos');
+      showPopup('Permission Denied', 'Camera permission is required to take photos', 'error');
       return;
     }
 
@@ -167,7 +168,7 @@ export function ImagesStepScreen({
         const assetsToAdd = response.assets.slice(0, remainingSlots);
         
         if (assetsToAdd.length === 0) {
-          Alert.alert('Limit Reached', 'You can add up to 5 images only');
+          showPopup('Limit Reached', 'You can add up to 5 images only', 'warning');
           return;
         }
         
@@ -199,9 +200,10 @@ export function ImagesStepScreen({
         
         // Show warning if some images were skipped due to limit
         if (response.assets.length > remainingSlots) {
-          Alert.alert(
-            'Some Images Skipped', 
-            `Only ${remainingSlots} more images can be added (maximum 5 total).`
+          showPopup(
+            'Some Images Skipped',
+            `Only ${remainingSlots} more images can be added (maximum 5 total).`,
+            'warning'
           );
         }
       }
@@ -210,7 +212,7 @@ export function ImagesStepScreen({
 
   const addImageToState = (uri: string, fileName: string) => {
     if (selectedImages.length >= 5) {
-      Alert.alert('Limit Reached', 'You can add up to 5 images only');
+      showPopup('Limit Reached', 'You can add up to 5 images only', 'warning');
       return;
     }
 
@@ -257,7 +259,7 @@ export function ImagesStepScreen({
     } as ViewStyle,
     sectionTitle: {
       fontSize: 18,
-      fontWeight: '600' as const,
+      fontWeight: '700' as const,
       color: colors.foreground,
       marginBottom: spacing.md,
     } as TextStyle,
@@ -269,7 +271,7 @@ export function ImagesStepScreen({
     input: {
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 8,
+      borderRadius: 20,
       padding: spacing.md,
       fontSize: 16,
       color: colors.foreground,
@@ -278,6 +280,11 @@ export function ImagesStepScreen({
       alignItems: 'center' as const,
       borderStyle: 'dashed' as const,
       minHeight: 100,
+      shadowColor: '#000',
+      shadowOpacity: 0.04,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 1,
     } as ViewStyle,
     addImagesText: {
       fontSize: 16,
@@ -294,7 +301,7 @@ export function ImagesStepScreen({
       width: (Dimensions.get('window').width - spacing.md * 2 - spacing.sm * 2) / 3,
       height: (Dimensions.get('window').width - spacing.md * 2 - spacing.sm * 2) / 3,
       position: 'relative' as const,
-      borderRadius: 8,
+      borderRadius: 18,
       overflow: 'hidden' as const,
     } as ViewStyle,
     image: {
@@ -306,7 +313,7 @@ export function ImagesStepScreen({
       position: 'absolute' as const,
       top: 4,
       right: 4,
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      backgroundColor: 'rgba(1, 50, 93, 0.85)',
       borderRadius: 12,
       width: 24,
       height: 24,
@@ -325,8 +332,8 @@ export function ImagesStepScreen({
     } as ViewStyle,
     modalContent: {
       backgroundColor: colors.card,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
       paddingTop: spacing.lg,
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.xl,
@@ -355,7 +362,7 @@ export function ImagesStepScreen({
       alignItems: 'center' as const,
       backgroundColor: colors.background,
       padding: spacing.md,
-      borderRadius: 12,
+      borderRadius: 18,
       marginBottom: spacing.sm,
       borderWidth: 1,
       borderColor: colors.border,
@@ -372,7 +379,7 @@ export function ImagesStepScreen({
     cancelButton: {
       backgroundColor: colors.background,
       padding: spacing.md,
-      borderRadius: 12,
+      borderRadius: 18,
       borderWidth: 1,
       borderColor: colors.border,
       marginTop: spacing.sm,

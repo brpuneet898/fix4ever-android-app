@@ -22,6 +22,8 @@ interface UserDateTimeSelectorProps {
   preferredTime?: string;
   onDateSlotSelect: (dateValue: string, slotValue: string) => void;
   error?: string;
+  preferredDateError?: string;
+  preferredTimeError?: string;
 }
 
 export default function UserDateTimeSelector({
@@ -29,6 +31,8 @@ export default function UserDateTimeSelector({
   preferredTime,
   onDateSlotSelect,
   error,
+  preferredDateError,
+  preferredTimeError,
 }: UserDateTimeSelectorProps) {
   const { colors, spacing, typography } = useTheme();
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -136,7 +140,7 @@ export default function UserDateTimeSelector({
     } as ViewStyle,
     sectionTitle: {
       fontSize: 18,
-      fontWeight: '600' as const,
+      fontWeight: '700' as const,
       color: colors.foreground,
       marginBottom: spacing.md,
     } as TextStyle,
@@ -150,14 +154,26 @@ export default function UserDateTimeSelector({
       backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 12,
-      padding: spacing.md,
+      borderRadius: 14,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
       alignItems: 'center' as const,
+      justifyContent: 'center' as const,
       marginHorizontal: spacing.xs,
+      minHeight: 44,
+      shadowColor: '#000',
+      shadowOpacity: 0.03,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 1,
     } as ViewStyle,
     quickDateButtonSelected: {
       backgroundColor: colors.primary,
       borderColor: colors.primary,
+    } as ViewStyle,
+    quickDateButtonError: {
+      borderColor: colors.destructive,
+      borderWidth: 1.5,
     } as ViewStyle,
     quickDateButtonText: {
       fontSize: 14,
@@ -171,9 +187,20 @@ export default function UserDateTimeSelector({
     // Calendar styles
     calendarContainer: {
       backgroundColor: colors.card,
-      borderRadius: 12,
+      borderRadius: 20,
       padding: spacing.md,
       marginBottom: spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: '#000',
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 2,
+    } as ViewStyle,
+    calendarContainerError: {
+      borderColor: colors.destructive,
+      borderWidth: 1.5,
     } as ViewStyle,
     calendarHeader: {
       flexDirection: 'row' as const,
@@ -188,7 +215,7 @@ export default function UserDateTimeSelector({
     } as TextStyle,
     calendarNavButton: {
       padding: spacing.xs,
-      borderRadius: 6,
+      borderRadius: 999,
       backgroundColor: colors.muted,
     } as ViewStyle,
     calendarNavText: {
@@ -216,7 +243,7 @@ export default function UserDateTimeSelector({
       aspectRatio: 1,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
-      borderRadius: 8,
+      borderRadius: 12,
       marginVertical: 2,
     } as ViewStyle,
     calendarDayText: {
@@ -257,14 +284,24 @@ export default function UserDateTimeSelector({
       backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 8,
-      padding: spacing.sm,
+      borderRadius: 18,
+      padding: spacing.md,
+      justifyContent: 'center' as const,
       marginBottom: spacing.sm,
       alignItems: 'center' as const,
+      shadowColor: '#000',
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 2,
     } as ViewStyle,
     timeSlotButtonSelected: {
       backgroundColor: colors.primary,
       borderColor: colors.primary,
+    } as ViewStyle,
+    timeSlotButtonError: {
+      borderColor: colors.destructive,
+      borderWidth: 1.5,
     } as ViewStyle,
     timeSlotButtonDisabled: {
       backgroundColor: colors.muted,
@@ -286,7 +323,7 @@ export default function UserDateTimeSelector({
     errorText: {
       fontSize: 12,
       color: colors.destructive,
-      marginTop: spacing.sm,
+      marginTop: spacing.xs,
     } as TextStyle,
     noSlotsText: {
       textAlign: 'center' as const,
@@ -309,6 +346,7 @@ export default function UserDateTimeSelector({
                 key={dateOption.value}
                 style={[
                   styles.quickDateButton,
+                  preferredDateError && !preferredDate && styles.quickDateButtonError,
                   isSelected && styles.quickDateButtonSelected,
                 ]}
                 onPress={() => {
@@ -332,7 +370,7 @@ export default function UserDateTimeSelector({
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Select Date</Text>
-        <View style={styles.calendarContainer}>
+        <View style={[styles.calendarContainer, preferredDateError && !preferredDate && styles.calendarContainerError]}>
           <View style={styles.calendarHeader}>
             <TouchableOpacity 
               style={styles.calendarNavButton}
@@ -395,6 +433,7 @@ export default function UserDateTimeSelector({
             })}
           </View>
         </View>
+        {preferredDateError && !preferredDate && <Text style={styles.errorText}>{preferredDateError}</Text>}
       </View>
 
       {preferredDate && (
@@ -411,6 +450,7 @@ export default function UserDateTimeSelector({
                     key={`${slot.start}-${slot.end}`}
                     style={[
                       styles.timeSlotButton,
+                      preferredTimeError && !preferredTime && styles.timeSlotButtonError,
                       isSelected && styles.timeSlotButtonSelected,
                       isDisabled && styles.timeSlotButtonDisabled,
                     ]}
@@ -441,6 +481,7 @@ export default function UserDateTimeSelector({
               </View>
             )}
           </View>
+          {preferredTimeError && !preferredTime && <Text style={styles.errorText}>{preferredTimeError}</Text>}
         </View>
       )}
 

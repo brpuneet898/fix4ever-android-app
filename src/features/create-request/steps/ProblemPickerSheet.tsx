@@ -28,7 +28,13 @@ export const ProblemPickerSheet = ({ title, options, selectedValue, onSelect, sh
     return (
       <TouchableOpacity
         key={index}
-        style={[styles.item, isSelected && { backgroundColor: colors.primary + '15' }]}
+        style={[
+          styles.item,
+          isSelected && {
+            backgroundColor: colors.primary + '12',
+            borderColor: colors.primary,
+          },
+        ]}
         onPress={() => {
           onSelect(item);
           sheetRef.current?.dismiss();
@@ -52,7 +58,7 @@ export const ProblemPickerSheet = ({ title, options, selectedValue, onSelect, sh
       backgroundStyle={{ backgroundColor: colors.card }}
     >
       <View style={{ padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-        <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.foreground }}>{title}</Text>
+        <Text style={{ fontSize: 18, fontWeight: '700', color: colors.primary }}>{title}</Text>
       </View>
       <BottomSheetFlatList
         data={options}
@@ -69,8 +75,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 16,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   itemText: { fontSize: 16 },
 });

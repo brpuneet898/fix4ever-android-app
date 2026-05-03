@@ -141,7 +141,9 @@ export function MobileFooter({
   onTabPress: (id: FooterTabId) => void;
 }) {
   const insets = useSafeAreaInsets();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const inactiveColor = isDark ? '#CBD5E1' : colors.mutedForeground;
+  const footerBackground = isDark ? '#111B2D' : colors.card;
 
   // Active Index for the sliding indicator
   const activeIndex = TABS.findIndex(t => t.id === activeTab);
@@ -167,7 +169,7 @@ export function MobileFooter({
         styles.footer,
         {
           paddingBottom: insets.bottom || 12,
-          backgroundColor: colors.card,
+          backgroundColor: footerBackground,
           borderTopColor: colors.border,
         },
       ]}

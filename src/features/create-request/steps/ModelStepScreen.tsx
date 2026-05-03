@@ -30,17 +30,19 @@ interface ModelStepScreenProps {
 
 const createStyles = (colors: any, spacing: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  section: { flex: 1, padding: spacing.md },
-  sectionTitle: { fontSize: 18, fontWeight: '600', color: colors.foreground, marginBottom: spacing.md },
+  section: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.xxl },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground, marginBottom: spacing.md },
   searchContainer: { marginBottom: spacing.md },
-  searchInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: spacing.md, fontSize: 16, color: colors.foreground, backgroundColor: colors.background },
-  modelItem: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: spacing.md, alignItems: 'center', flexDirection: 'row', minHeight: 90 },
-  brandItemSelected: { borderColor: colors.primary, backgroundColor: colors.primary + '10' },
+  searchInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 18, padding: spacing.md, fontSize: 16, color: colors.foreground, backgroundColor: colors.card },
+  modelItem: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 18, padding: spacing.md, alignItems: 'center', flexDirection: 'row', minHeight: 90 },
+  brandItemSelected: { borderColor: colors.primary, backgroundColor: colors.primary + '12' },
+  modelItemError: { borderColor: colors.destructive, borderWidth: 1.5 },
   brandName: { fontSize: 14, fontWeight: '500', color: colors.mutedForeground, flex: 1 },
   brandNameSelected: { color: colors.primary },
   otherBrandIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
   otherBrandIconText: { fontSize: 24, color: colors.mutedForeground, fontWeight: 'bold' },
-  imageStyle: { width: 60, height: 60, marginRight: spacing.md, resizeMode: 'contain' }
+  imageStyle: { width: 60, height: 60, marginRight: spacing.md, resizeMode: 'contain' },
+  errorText: { fontSize: 12, color: colors.destructive, marginTop: spacing.xs }
 });
 
 
@@ -63,11 +65,13 @@ const useDebounce = (value: string, delay: number) => {
 };
 
 // 3. Separate SearchHeader component to isolate input state
-const SearchHeader = React.memo(({ value, onChangeText, placeholder, styles }: any) => (
+const SearchHeader = React.memo(({ value, onChangeText, placeholder, styles, colors }: any) => (
   <View style={styles.searchContainer}>
     <TextInput
       style={styles.searchInput}
       placeholder={placeholder}
+      placeholderTextColor={colors.mutedForeground}
+      selectionColor={colors.primary}
       value={value}
       onChangeText={onChangeText}
     />
@@ -75,9 +79,13 @@ const SearchHeader = React.memo(({ value, onChangeText, placeholder, styles }: a
 ));
 
 // 2. Wrap Item in React.memo to prevent unnecessary row re-renders
-const ModelItem = React.memo(({ item, isSelected, onPress, itemStyles, spacing, colors }: any) => (
+const ModelItem = React.memo(({ item, isSelected, onPress, itemStyles, showError }: any) => (
   <TouchableOpacity
-    style={[itemStyles.modelItem, isSelected && itemStyles.brandItemSelected]}
+    style={[
+      itemStyles.modelItem,
+      isSelected && itemStyles.brandItemSelected,
+      showError && itemStyles.modelItemError,
+    ]}
     onPress={() => onPress(item)}
   >
     {item.url ? (
@@ -129,8 +137,9 @@ export function ModelStepScreen({
       onChangeText={setModelSearchQuery}
       placeholder="Search for model (eg. MacBook Pro)"
       styles={styles}
+      colors={colors}
     />
-  ), [modelSearchQuery, setModelSearchQuery, styles]);
+  ), [modelSearchQuery, setModelSearchQuery, styles, colors]);
 
   // 8. Stable renderItem function
   const renderItem = useCallback(({ item }: any) => (
@@ -141,6 +150,7 @@ export function ModelStepScreen({
         formData.selectedModel === item.name ||
         formData.model === item.name
       }
+      showError={Boolean(errors.model && !formData.model)}
       itemStyles={itemStyles}
       spacing={spacing}
       colors={colors}
@@ -149,7 +159,7 @@ export function ModelStepScreen({
         updateFormData('model', model.name);
       }}
     />
-  ), [formData.selectedModel, itemStyles, colors, spacing, updateFormData]);
+  ), [formData.selectedModel, formData.model, errors.model, itemStyles, colors, spacing, updateFormData]);
 
   
   return (
@@ -176,6 +186,9 @@ export function ModelStepScreen({
             index,
           })}
         />
+        {errors.model && !formData.model && (
+          <Text style={styles.errorText}>{errors.model}</Text>
+        )}
       </View>
     </View>
   );

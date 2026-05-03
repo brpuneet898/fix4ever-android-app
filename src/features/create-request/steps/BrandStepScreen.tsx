@@ -63,7 +63,7 @@ export function BrandStepScreen({
     } as ViewStyle,
     sectionTitle: {
       fontSize: 18,
-      fontWeight: '600' as const,
+      fontWeight: '700' as const,
       color: colors.foreground,
       marginBottom: spacing.md,
     } as TextStyle,
@@ -73,11 +73,11 @@ export function BrandStepScreen({
     searchInput: {
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 8,
+      borderRadius: 18,
       padding: spacing.md,
       fontSize: 16,
       color: colors.foreground,
-      backgroundColor: colors.background,
+      backgroundColor: colors.card,
     } as ViewStyle,
     brandGrid: {
       flexDirection: 'row' as const,
@@ -90,15 +90,24 @@ export function BrandStepScreen({
       backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 8,
+      borderRadius: 18,
       padding: spacing.md,
       alignItems: 'center' as const,
       minHeight: 100,
       justifyContent: 'center' as const,
+      shadowColor: '#000',
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 2,
     } as ViewStyle,
     brandItemSelected: {
       borderColor: colors.primary,
-      backgroundColor: colors.primary + '10',
+      backgroundColor: colors.primary + '12',
+    } as ViewStyle,
+    brandItemError: {
+      borderColor: colors.destructive,
+      borderWidth: 1.5,
     } as ViewStyle,
     brandName: {
       fontSize: 12,
@@ -128,10 +137,15 @@ export function BrandStepScreen({
       marginTop: spacing.md,
       padding: spacing.md,
       backgroundColor: colors.card,
-      borderRadius: 8,
+      borderRadius: 18,
       borderWidth: 1,
       borderColor: colors.border,
       width: '100%',
+      shadowColor: '#000',
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 2,
     } as ViewStyle,
     customBrandLabel: {
       fontSize: 16,
@@ -142,12 +156,21 @@ export function BrandStepScreen({
     customBrandInput: {
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 8,
+      borderRadius: 16,
       padding: spacing.md,
       fontSize: 16,
       color: colors.foreground,
-      backgroundColor: colors.background,
+      backgroundColor: colors.card,
     } as ViewStyle,
+    inputError: {
+      borderColor: colors.destructive,
+      borderWidth: 1.5,
+    } as ViewStyle,
+    errorText: {
+      fontSize: 12,
+      color: colors.destructive,
+      marginTop: spacing.xs,
+    } as TextStyle,
   });
 
   return (
@@ -159,7 +182,10 @@ export function BrandStepScreen({
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search for model (eg. iPhone 14)"
+            placeholder="Search for brand (eg. Apple)"
+            placeholderTextColor={colors.mutedForeground}
+            selectionColor={colors.primary}
+            cursorColor={colors.primary}
             value={brandSearchQuery}
             onChangeText={setBrandSearchQuery}
           />
@@ -173,6 +199,7 @@ export function BrandStepScreen({
               style={[
                 styles.brandItem,
                 (formData.selectedBrand === brand.name || formData.selectedBrand === brand.id) && styles.brandItemSelected,
+                errors.brand && !formData.brand && styles.brandItemError,
               ]}
               onPress={() => {
                 console.log('Brand clicked:', brand.name, 'ID:', brand.id);
@@ -217,8 +244,11 @@ export function BrandStepScreen({
             <View style={styles.customBrandContainer}>
               <Text style={styles.customBrandLabel}>Enter your brand name:</Text>
               <TextInput
-                style={styles.customBrandInput}
+                style={[styles.customBrandInput, errors.brand && !customBrand.trim() && styles.inputError]}
                 placeholder="Type your brand name"
+                placeholderTextColor={colors.mutedForeground}
+                selectionColor={colors.primary}
+                cursorColor={colors.primary}
                 value={customBrand}
                 onChangeText={(value) => {
                   console.log('Custom brand input changed:', value);
@@ -232,9 +262,15 @@ export function BrandStepScreen({
                   });
                 }}
               />
+              {errors.brand && !customBrand.trim() && (
+                <Text style={styles.errorText}>{errors.brand}</Text>
+              )}
             </View>
           )}
         </View>
+        {errors.brand && !formData.brand && (
+          <Text style={styles.errorText}>{errors.brand}</Text>
+        )}
       </View>
     </ScrollView>
   );

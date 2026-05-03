@@ -6,7 +6,6 @@ import {
   TextInput,
   ActivityIndicator,
   Keyboard,
-  Alert,
   StyleSheet,
   ViewStyle,
   TextStyle,
@@ -41,6 +40,7 @@ interface ContactStepScreenProps {
   getCurrentLocation: () => void;
   isGettingLocation: boolean;
   locationError: string | null;
+  showPopup: (title: string, message: string, variant?: 'info' | 'success' | 'warning' | 'error') => void;
 }
 
 export function ContactStepScreen({
@@ -57,6 +57,7 @@ export function ContactStepScreen({
   getCurrentLocation,
   isGettingLocation,
   locationError,
+  showPopup,
 }: ContactStepScreenProps) {
   const { colors, spacing } = useTheme();
 
@@ -86,9 +87,10 @@ export function ContactStepScreen({
     : null;
 
   const showOutOfServiceAreaAlert = () => {
-    Alert.alert(
+    showPopup(
       'Location Not Serviceable',
-      `We currently serve locations within ${getServiceAreaSummaryText()} only.`
+      `We currently serve locations within ${getServiceAreaSummaryText()} only.`,
+      'warning'
     );
   };
 
@@ -279,6 +281,7 @@ export function ContactStepScreen({
     content: {
       flex: 1,
       paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm,
       paddingBottom: spacing.xxl,
     } as ViewStyle,
     scroll: {
@@ -292,7 +295,7 @@ export function ContactStepScreen({
     } as ViewStyle,
     sectionTitle: {
       fontSize: 18,
-      fontWeight: '600' as const,
+      fontWeight: '700' as const,
       color: colors.foreground,
       marginBottom: spacing.md,
     } as TextStyle,
@@ -308,15 +311,24 @@ export function ContactStepScreen({
       backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 8,
+      borderRadius: 18,
       padding: spacing.md,
       alignItems: 'center' as const,
       minHeight: 60,
       justifyContent: 'center' as const,
+      shadowColor: '#000',
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 2,
     } as ViewStyle,
     optionButtonSelected: {
       backgroundColor: colors.primary,
       borderColor: colors.primary,
+    } as ViewStyle,
+    optionButtonError: {
+      borderColor: colors.destructive,
+      borderWidth: 1.5,
     } as ViewStyle,
     optionText: {
       fontSize: 14,
@@ -329,7 +341,7 @@ export function ContactStepScreen({
     } as TextStyle,
     suggestionsContainer: {
       backgroundColor: colors.card,
-      borderRadius: 8,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.border,
       maxHeight: 200,
@@ -383,12 +395,21 @@ export function ContactStepScreen({
       padding: spacing.md,
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 12,
+      borderRadius: 20,
       backgroundColor: colors.card,
+      shadowColor: '#000',
+      shadowOpacity: 0.06,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 3,
+    } as ViewStyle,
+    locationDetailsCardError: {
+      borderColor: colors.destructive,
+      borderWidth: 1.5,
     } as ViewStyle,
     locationDetailsTitle: {
       fontSize: 16,
-      fontWeight: '600' as const,
+      fontWeight: '700' as const,
       color: colors.foreground,
       marginBottom: spacing.sm,
       textAlign: 'center' as const,
@@ -410,6 +431,10 @@ export function ContactStepScreen({
       backgroundColor: colors.background,
       fontSize: 15,
     } as TextStyle,
+    searchInputError: {
+      borderColor: colors.destructive,
+      borderWidth: 1.5,
+    } as TextStyle,
     currentLocationIconButton: {
       width: 44,
       height: 44,
@@ -417,8 +442,8 @@ export function ContactStepScreen({
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       borderWidth: 1,
-      borderColor: colors.foreground,
-      backgroundColor: colors.card,
+      borderColor: colors.border,
+      backgroundColor: colors.primary,
     } as ViewStyle,
     miniMapContainer: {
       borderRadius: 12,
@@ -456,21 +481,21 @@ export function ContactStepScreen({
       marginTop: spacing.sm,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
-      borderRadius: 12,
-      backgroundColor: '#EAFBF0',
+      borderRadius: 16,
+      backgroundColor: '#EAF4FF',
       borderWidth: 1,
-      borderColor: '#9BE7B3',
+      borderColor: '#B8D7FF',
     } as ViewStyle,
     locationSuccessTitle: {
       fontSize: 14,
-      color: '#0B8A35',
+      color: '#0B5CAB',
       fontWeight: '600' as const,
       marginBottom: 2,
       textAlign: 'center' as const,
     } as TextStyle,
     locationSuccessText: {
       fontSize: 12,
-      color: '#0B8A35',
+      color: '#0B5CAB',
       textAlign: 'center' as const,
     } as TextStyle,
     mapHint: {
@@ -481,12 +506,13 @@ export function ContactStepScreen({
   });
 
   const renderLocationPicker = () => {
+    const hasLocationFieldError = Boolean(errors.address || errors.city || errors.location);
     return (
-    <View style={styles.locationDetailsCard}>
+    <View style={[styles.locationDetailsCard, hasLocationFieldError && styles.locationDetailsCardError]}>
       <Text style={styles.locationDetailsTitle}>Location Details</Text>
       <View style={styles.searchRow}>
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, errors.address && styles.searchInputError]}
           value={addressQuery || formData.address}
           onChangeText={onAddressChange}
           placeholder="Search for a location or address..."
@@ -498,9 +524,9 @@ export function ContactStepScreen({
           disabled={isGettingLocation}
         >
           {isGettingLocation ? (
-            <ActivityIndicator size="small" color={colors.primary} />
+            <ActivityIndicator size="small" color={colors.primaryForeground} />
           ) : (
-            <Icon name="map-pin" size={18} color={colors.foreground} />
+            <Icon name="map-pin" size={18} color={colors.primaryForeground} />
           )}
         </TouchableOpacity>
       </View>
@@ -569,6 +595,9 @@ export function ContactStepScreen({
           {isResolvingAddress ? 'Resolving selected location...' : locationError}
         </Text>
       )}
+      {!!errors.address && <Text style={styles.locationError}>{errors.address}</Text>}
+      {!!errors.city && <Text style={styles.locationError}>{errors.city}</Text>}
+      {!!errors.location && <Text style={styles.locationError}>{errors.location}</Text>}
     </View>
     );
   };
@@ -588,6 +617,7 @@ export function ContactStepScreen({
               key={type}
               style={[
                 styles.optionButton,
+                errors.requestType && styles.optionButtonError,
                 formData.requestType === type && styles.optionButtonSelected,
               ]}
               onPress={() => updateFormData('requestType', type as 'self' | 'other')}
@@ -603,6 +633,7 @@ export function ContactStepScreen({
             </TouchableOpacity>
           ))}
         </View>
+        {!!errors.requestType && <Text style={styles.locationError}>{errors.requestType}</Text>}
 
         <Text style={styles.sectionTitle}>Service Type</Text>
         <View style={styles.optionsGrid}>
@@ -615,6 +646,7 @@ export function ContactStepScreen({
               key={type.id}
               style={[
                 styles.optionButton,
+                errors.serviceType && styles.optionButtonError,
                 formData.serviceType === type.id && styles.optionButtonSelected,
               ]}
               onPress={() => updateFormData('serviceType', type.id as any)}
@@ -630,6 +662,7 @@ export function ContactStepScreen({
             </TouchableOpacity>
           ))}
         </View>
+        {!!errors.serviceType && <Text style={styles.locationError}>{errors.serviceType}</Text>}
 
         {formData.requestType === 'self' ? (
           <>

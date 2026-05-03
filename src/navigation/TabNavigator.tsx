@@ -32,12 +32,14 @@ const TABS = [
 // Custom tab component with animations
 const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => {
   const insets = useSafeAreaInsets();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const inactiveColor = isDark ? '#CBD5E1' : colors.mutedForeground;
+  const barBackground = isDark ? '#111B2D' : colors.card;
 
   return (
     <View style={{ 
       flexDirection: 'row', 
-      backgroundColor: colors.card,
+      backgroundColor: barBackground,
       paddingBottom: insets.bottom,
       paddingTop: 8,
       borderTopWidth: 1,
@@ -120,7 +122,7 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
                 <Icon
                   name={tab.icon}
                   size={24}
-                  color={isFocused ? colors.primary : colors.mutedForeground}
+                  color={isFocused ? colors.primary : inactiveColor}
                 />
               </Animated.View>
 
@@ -128,7 +130,7 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
                 style={{
                   fontSize: 11,
                   marginTop: 2,
-                  color: isFocused ? colors.primary : colors.mutedForeground,
+                  color: isFocused ? colors.primary : inactiveColor,
                   transform: [{ translateY: animations.labelY }],
                 }}
               >
@@ -192,11 +194,11 @@ function MainTabs() {
 }
 
 export default function NavigationTab() {
-    const { colors, isDark } = useTheme();
+  const { colors, isDark } = useTheme();
 
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Main" component={MainTabs} options={{ navigationBarColor: colors.card }} />
+            <Stack.Screen name="Main" component={MainTabs} options={{ navigationBarColor: isDark ? '#111B2D' : colors.card }} />
             <Stack.Screen name="ServiceRequestDetails" component={ServiceRequestDetailsScreen} options={{ headerShown: false}} />
             <Stack.Screen 
                 name="Auth" 

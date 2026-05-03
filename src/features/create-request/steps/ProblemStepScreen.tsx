@@ -180,16 +180,16 @@ export function ProblemStepScreen({
       flex: 1,
     } as ViewStyle,
     scrollContent: {
-      padding: spacing.md,
+      padding: spacing.sm,
     } as ViewStyle,
     section: {
-      marginBottom: spacing.lg,
+      marginBottom: spacing.md,
     } as ViewStyle,
     sectionTitle: {
       fontSize: 18,
-      fontWeight: '600' as const,
+      fontWeight: '700' as const,
       color: colors.foreground,
-      marginBottom: spacing.md,
+      marginBottom: spacing.sm,
     } as TextStyle,
     optionsGrid: {
       flexDirection: 'row' as const,
@@ -203,11 +203,17 @@ export function ProblemStepScreen({
       backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 8,
-      padding: spacing.md,
+      borderRadius: 14,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
       alignItems: 'center' as const,
-      minHeight: 60,
+      minHeight: 52,
       justifyContent: 'center' as const,
+      shadowColor: '#000',
+      shadowOpacity: 0.04,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 1,
     } as ViewStyle,
     optionButtonSelected: {
       backgroundColor: colors.primary,
@@ -225,11 +231,12 @@ export function ProblemStepScreen({
     input: {
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 8,
+      borderRadius: 14,
       padding: spacing.md,
+      marginBottom: spacing.md,
       fontSize: 16,
       color: colors.foreground,
-      backgroundColor: colors.background,
+      backgroundColor: colors.card,
     } as ViewStyle,
     textArea: {
       minHeight: 120,
@@ -237,11 +244,12 @@ export function ProblemStepScreen({
     } as ViewStyle,
     inputError: {
       borderColor: colors.destructive,
+      borderWidth: 1.5,
     } as ViewStyle,
     errorText: {
       fontSize: 12,
       color: colors.destructive,
-      marginTop: 4,
+      marginTop: spacing.xs,
     } as TextStyle,
   });
 
@@ -279,7 +287,7 @@ export function ProblemStepScreen({
             <>
               <Text style={styles.sectionTitle}>Problem Category</Text>
               <TouchableOpacity 
-                style={styles.input} 
+                style={[styles.input, errors.mainProblem && styles.inputError]} 
                 onPress={() => {
                   setSheetTitle("Select Problem Category")
                   setSelectedValue(formData.mainProblem.title)
@@ -289,10 +297,11 @@ export function ProblemStepScreen({
                   problemSheetRef.current?.present()
                 }}
               >
-                <Text style={{ color: formData.problemType ? colors.foreground : colors.mutedForeground }}>
+                <Text style={{ color: formData.mainProblem?.title ? colors.foreground : colors.mutedForeground }}>
                   {selectedLabel}
                 </Text>
               </TouchableOpacity>
+              {errors.mainProblem && <Text style={styles.errorText}>{errors.mainProblem}</Text>}
             </>
           )}
 
@@ -300,7 +309,7 @@ export function ProblemStepScreen({
           <>
             <Text style={styles.sectionTitle}>Problem Sub-category</Text>
             <TouchableOpacity 
-                  style={styles.input} 
+              style={[styles.input, errors.subProblem && styles.inputError]} 
                   onPress={() =>{
                       setSheetTitle("Select Problem Sub-category")
                       setSelectedValue(formData.subProblem.title)
@@ -310,14 +319,15 @@ export function ProblemStepScreen({
                      problemSheetRef.current?.present()
                   }}
                 >
-                  <Text style={{ color: formData.problemType ? colors.foreground : colors.mutedForeground }}>
+                  <Text style={{ color: formData.subProblem?.title ? colors.foreground : colors.mutedForeground }}>
                     {selectedSubLabel}
                   </Text>
             </TouchableOpacity>
+            {errors.subProblem && <Text style={styles.errorText}>{errors.subProblem}</Text>}
 
             <Text style={styles.sectionTitle}>Select the specific issue</Text>
             <TouchableOpacity 
-                  style={styles.input} 
+                  style={[styles.input, errors.relationalBehaviors && styles.inputError]} 
                   onPress={() =>{
                       setSheetTitle("Select the specific issue")
                       setSelectedValue(formData.relationalBehaviors[0]?.title)
@@ -327,10 +337,11 @@ export function ProblemStepScreen({
                      problemSheetRef.current?.present()
                   }}
                 >
-                  <Text style={{ color: formData.problemType ? colors.foreground : colors.mutedForeground }}>
+                  <Text style={{ color: formData.relationalBehaviors[0]?.title ? colors.foreground : colors.mutedForeground }}>
                     {selectedRelationalBehaviorLabel}
                   </Text>
             </TouchableOpacity>
+            {errors.relationalBehaviors && <Text style={styles.errorText}>{errors.relationalBehaviors}</Text>}
           </>
         )}
 

@@ -1285,3 +1285,246 @@ export function getAllProblemCategories(): ProblemCategory[] {
 export function getPricingTiers(): PricingTier[] {
   return URGENCY_PRICING;
 }
+
+export interface ProblemPricingCatalogEntry {
+  mainProblemCategory: string;
+  subProblem: string;
+  relatedBehavior: string;
+  defaultLevel?: 'L1' | 'L2' | 'L3' | 'L4';
+  priceLabel: string;
+  priceRange?: PriceRange;
+  requiresManualQuote?: boolean;
+}
+
+export interface ProblemPricingLookupResult {
+  matched: boolean;
+  displayLabel: string;
+  finalChargeRange: PriceRange;
+  breakdown: string[];
+  defaultLevel?: 'L1' | 'L2' | 'L3' | 'L4';
+  requiresManualQuote: boolean;
+  matchedEntry?: ProblemPricingCatalogEntry;
+}
+
+const normalizePricingText = (value?: string) =>
+  (value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+
+const formatPriceLabel = (min: number, max: number) =>
+  `₹${min.toLocaleString('en-IN')} - ₹${max.toLocaleString('en-IN')}`;
+
+const createCatalogEntry = (
+  mainProblemCategory: string,
+  subProblem: string,
+  relatedBehavior: string,
+  defaultLevel: 'L1' | 'L2' | 'L3' | 'L4',
+  min: number,
+  max: number
+): ProblemPricingCatalogEntry => ({
+  mainProblemCategory,
+  subProblem,
+  relatedBehavior,
+  defaultLevel,
+  priceLabel: formatPriceLabel(min, max),
+  priceRange: { min, max },
+});
+
+const createManualQuoteEntry = (
+  mainProblemCategory: string,
+  subProblem: string,
+  relatedBehavior: string,
+  defaultLevel?: 'L1' | 'L2' | 'L3' | 'L4'
+): ProblemPricingCatalogEntry => ({
+  mainProblemCategory,
+  subProblem,
+  relatedBehavior,
+  defaultLevel,
+  priceLabel: 'After Checking',
+  requiresManualQuote: true,
+});
+
+export const LAPTOP_PROBLEM_PRICE_CATALOG: ProblemPricingCatalogEntry[] = [
+  createCatalogEntry('Not Turning On', 'Laptop not turning on', 'No power light, no fan', 'L3', 1500, 3500),
+  createCatalogEntry('Not Turning On', 'Laptop turns on then off', 'Shuts down in 5–10 sec', 'L2', 900, 1999),
+  createCatalogEntry('Not Turning On', 'Stuck on logo', 'Logo repeats again and again', 'L1', 499, 999),
+  createCatalogEntry('Not Turning On', 'Restart loop', 'Keeps restarting', 'L1', 499, 999),
+  createCatalogEntry('Not Turning On', 'Works only on charger', 'Battery removed / dead', 'L1', 499, 999),
+  createCatalogEntry('Not Turning On', 'No display but power on', 'Fan running, black screen', 'L2', 900, 1999),
+  createCatalogEntry('Not Turning On', 'Dead after repair', 'Earlier technician repaired', 'L4', 2500, 7000),
+
+  createCatalogEntry('Screen Problem', 'Screen broken', 'Physical crack visible', 'L1', 499, 999),
+  createCatalogEntry('Screen Problem', 'Screen flickering', 'Flickers when lid moves', 'L2', 900, 1999),
+  createCatalogEntry('Screen Problem', 'Black screen', 'External display works', 'L2', 900, 1999),
+  createCatalogEntry('Screen Problem', 'Lines on screen', 'Vertical/horizontal lines', 'L1', 499, 999),
+  createCatalogEntry('Screen Problem', 'Dim display', 'Brightness very low', 'L3', 1500, 3500),
+  createCatalogEntry('Screen Problem', 'Touch not working', 'Touch stops responding', 'L2', 900, 1999),
+  createCatalogEntry('Screen Problem', 'Half display visible', 'One side black', 'L2', 900, 1999),
+
+  createCatalogEntry('Battery Problem', 'Battery drains fast', 'Less than 1 hour backup', 'L1', 499, 999),
+  createCatalogEntry('Battery Problem', 'Battery not charging', 'Charging stuck at 0%', 'L2', 900, 1999),
+  createCatalogEntry('Battery Problem', 'Battery not detected', 'Shows no battery', 'L1', 499, 999),
+  createCatalogEntry('Battery Problem', 'Battery swollen', 'Bulging battery', 'L1', 499, 999),
+  createCatalogEntry('Battery Problem', 'Laptop shuts at 30%', 'Sudden shutdown', 'L1', 499, 999),
+
+  createCatalogEntry('Charging Problem', 'Laptop not charging', 'No charging light', 'L2', 900, 1999),
+  createCatalogEntry('Charging Problem', 'Charging pin loose', 'Charges only at angle', 'L2', 900, 1999),
+  createCatalogEntry('Charging Problem', 'Slow charging', 'Takes very long', 'L2', 900, 1999),
+  createCatalogEntry('Charging Problem', 'Burn smell near port', 'Smell or heat', 'L4', 2500, 7000),
+
+  createCatalogEntry('Heating Problem', 'Laptop overheating', 'Body very hot', 'L1', 499, 999),
+  createCatalogEntry('Heating Problem', 'Auto shutdown on heat', 'Turns off on use', 'L2', 900, 1999),
+  createCatalogEntry('Heating Problem', 'Heating while charging', 'Only while plugged', 'L2', 900, 1999),
+  createCatalogEntry('Heating Problem', 'Burn marks inside', 'Thermal damage', 'L3', 1500, 3500),
+
+  createCatalogEntry('Fan Problem', 'Fan noise loud', 'Jet-like sound', 'L1', 499, 999),
+  createCatalogEntry('Fan Problem', 'Fan rattling', 'Vibration sound', 'L1', 499, 999),
+  createCatalogEntry('Fan Problem', 'Fan not spinning', 'No air output', 'L2', 900, 1999),
+
+  createCatalogEntry('Slow Performance', 'Laptop very slow', 'General slowness', 'L1', 499, 999),
+  createCatalogEntry('Slow Performance', 'Takes long to boot', 'More than 5 minutes', 'L1', 499, 999),
+  createCatalogEntry('Slow Performance', 'Hangs frequently', 'Freezes randomly', 'L1', 499, 999),
+  createCatalogEntry('Slow Performance', 'Slow after update', 'Issue after update', 'L1', 499, 999),
+  createCatalogEntry('Slow Performance', 'Slow + overheating', 'Gets hot when slow', 'L2', 900, 1999),
+
+  createCatalogEntry('Software Issue', 'Windows not opening', 'Stuck on loading', 'L1', 499, 999),
+  createCatalogEntry('Software Issue', 'Blue screen error', 'BSOD appears', 'L1', 499, 999),
+  createCatalogEntry('Software Issue', 'Update stuck', 'Update loop', 'L1', 499, 999),
+  createCatalogEntry('Software Issue', 'Windows corrupted', 'Needs reinstall', 'L1', 499, 999),
+
+  createCatalogEntry('Virus Issue', 'Virus popup', 'Ads opening', 'L1', 499, 999),
+  createCatalogEntry('Virus Issue', 'Browser redirect', 'Opens unknown sites', 'L1', 499, 999),
+  createCatalogEntry('Virus Issue', 'Files missing', 'Auto delete', 'L2', 900, 1999),
+
+  createCatalogEntry('Keyboard Problem', 'Keyboard not working', 'No typing', 'L1', 499, 999),
+  createCatalogEntry('Keyboard Problem', 'Some keys not working', 'Partial keys dead', 'L1', 499, 999),
+  createCatalogEntry('Keyboard Problem', 'Keyboard got wet', 'Liquid spill', 'L2', 900, 1999),
+
+  createCatalogEntry('Touchpad Problem', 'Touchpad not working', 'Cursor not moving', 'L1', 499, 999),
+  createCatalogEntry('Touchpad Problem', 'Touchpad click issue', 'Click not working', 'L1', 499, 999),
+  createCatalogEntry('Touchpad Problem', 'Touchpad erratic', 'Moves automatically', 'L2', 900, 1999),
+
+  createCatalogEntry('WiFi Issue', 'WiFi not connecting', 'Shows networks but fails', 'L1', 499, 999),
+  createCatalogEntry('WiFi Issue', 'WiFi not showing', 'No WiFi option', 'L2', 900, 1999),
+  createCatalogEntry('WiFi Issue', 'WiFi disconnects', 'Drops frequently', 'L1', 499, 999),
+
+  createCatalogEntry('Bluetooth Issue', 'Bluetooth not working', 'Cannot pair devices', 'L1', 499, 999),
+  createCatalogEntry('Bluetooth Issue', 'Bluetooth missing', 'Option not visible', 'L3', 1500, 3500),
+
+  createCatalogEntry('Sound Issue', 'No sound', 'Speaker silent', 'L1', 499, 999),
+  createCatalogEntry('Sound Issue', 'Low sound', 'Very low volume', 'L1', 499, 999),
+  createCatalogEntry('Sound Issue', 'Headphone jack issue', 'No sound on jack', 'L2', 900, 1999),
+
+  createCatalogEntry('Camera Issue', 'Camera not working', 'Black screen in apps', 'L1', 499, 999),
+  createCatalogEntry('Camera Issue', 'Camera not detected', 'Missing device', 'L2', 900, 1999),
+
+  createCatalogEntry('Storage Issue', 'Hard disk not detected', 'No disk in system', 'L2', 900, 1999),
+  createCatalogEntry('Storage Issue', 'Laptop stuck due to disk', 'Disk error at boot', 'L2', 900, 1999),
+  createCatalogEntry('Storage Issue', 'Data deleted', 'Need recovery', 'L2', 900, 1999),
+
+  createCatalogEntry('Physical Damage', 'Laptop fell down', 'Physical impact', 'L2', 900, 1999),
+  createCatalogEntry('Physical Damage', 'Hinge broken', 'Screen loose', 'L2', 900, 1999),
+  createCatalogEntry('Physical Damage', 'Port broken', 'USB/HDMI damaged', 'L2', 900, 1999),
+
+  createCatalogEntry('Liquid Damage', 'Water spill', 'Spill but works', 'L3', 1500, 3500),
+  createCatalogEntry('Liquid Damage', 'Not working after spill', 'Dead after liquid', 'L4', 2500, 7000),
+
+  createManualQuoteEntry('Password Or PIN Issue', 'Password/PIN option Not Showing', ''),
+  createManualQuoteEntry('Password Or PIN Issue', 'I forget The password', ''),
+  createManualQuoteEntry('Password Or PIN Issue', 'Bios Password', ''),
+
+  createManualQuoteEntry('Other Issue', 'Software Issue', '', 'L2'),
+  createManualQuoteEntry('Other Issue', 'Physical Damages', '', 'L3'),
+  createManualQuoteEntry('Multiple Issue', 'Software Issue', '', 'L2'),
+  createManualQuoteEntry('Multiple Issue', 'Physical Issue', '', 'L3'),
+  createManualQuoteEntry('Multiple Issue', 'Software Issue + Physical issue', '', 'L3'),
+];
+
+const scorePricingEntry = (
+  entry: ProblemPricingCatalogEntry,
+  selection: {
+    mainProblemCategory?: string;
+    subProblem?: string;
+    relatedBehavior?: string;
+  }
+) => {
+  const mainSelection = normalizePricingText(selection.mainProblemCategory);
+  if (!mainSelection) {
+    return -1;
+  }
+
+  const subSelection = normalizePricingText(selection.subProblem);
+  const behaviorSelection = normalizePricingText(selection.relatedBehavior);
+
+  const mainEntry = normalizePricingText(entry.mainProblemCategory);
+  const subEntry = normalizePricingText(entry.subProblem);
+  const behaviorEntry = normalizePricingText(entry.relatedBehavior);
+
+  if (mainEntry !== mainSelection) {
+    return -1;
+  }
+
+  let score = 3;
+
+  if (subSelection) {
+    if (subEntry !== subSelection) {
+      return -1;
+    }
+    score += 2;
+  }
+
+  if (behaviorSelection) {
+    if (behaviorEntry && behaviorEntry !== behaviorSelection) {
+      return -1;
+    }
+    if (behaviorEntry === behaviorSelection) {
+      score += 1;
+    }
+  } else if (!behaviorEntry) {
+    score += 1;
+  }
+
+  return score;
+};
+
+export function getProblemPricingFromSelection(selection: {
+  mainProblemCategory?: string;
+  subProblem?: string;
+  relatedBehavior?: string;
+}): ProblemPricingLookupResult | null {
+  let bestMatch: { entry: ProblemPricingCatalogEntry; score: number } | null = null;
+
+  for (const entry of LAPTOP_PROBLEM_PRICE_CATALOG) {
+    const score = scorePricingEntry(entry, selection);
+    if (score < 0) {
+      continue;
+    }
+    if (!bestMatch || score > bestMatch.score) {
+      bestMatch = { entry, score };
+    }
+  }
+
+  if (!bestMatch) {
+    return null;
+  }
+
+  const { entry } = bestMatch;
+  const isManualQuote = Boolean(entry.requiresManualQuote || !entry.priceRange);
+
+  return {
+    matched: true,
+    matchedEntry: entry,
+    displayLabel: entry.priceLabel,
+    finalChargeRange: entry.priceRange || { min: 0, max: 0 },
+    breakdown: [
+      `Main Problem Category: ${entry.mainProblemCategory}`,
+      `Sub Problem: ${entry.subProblem}`,
+      entry.relatedBehavior ? `Related Behavior / Condition: ${entry.relatedBehavior}` : 'Related Behavior / Condition: Not specified',
+      entry.defaultLevel ? `Default Level: ${entry.defaultLevel}` : 'Default Level: Not specified',
+      `Price: ${entry.priceLabel}`,
+    ],
+    defaultLevel: entry.defaultLevel,
+    requiresManualQuote: isManualQuote,
+  };
+}
