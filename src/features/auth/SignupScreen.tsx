@@ -26,7 +26,7 @@ const PASSWORD_HINT =
 
 type SignupScreenProps = {
   onBack: () => void;
-  onSuccess: (token: string, user: User) => void;
+  onSuccess: (token: string, user: User, refreshToken?: string) => void;
   onGooglePress?: () => void;
 };
 
@@ -131,7 +131,7 @@ export function SignupScreen({
       return;
     }
     if (data?.success && data?.token && data?.user) {
-      onSuccess(data.token, data.user);
+      onSuccess(data.token, data.user, data.refreshToken);
     } else {
       setError((data as { message?: string })?.message || 'Sign up failed.');
     }

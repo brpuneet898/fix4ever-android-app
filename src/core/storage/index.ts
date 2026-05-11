@@ -5,6 +5,7 @@ export {
 export {
   getStoredToken,
   getStoredUser,
+  getStoredRefreshToken,
   setAuth,
   clearAuth,
 } from './authStorage';

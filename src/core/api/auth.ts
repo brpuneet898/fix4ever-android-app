@@ -14,6 +14,7 @@ export type LoginResponse = {
   success: boolean;
   message: string;
   token: string;
+  refreshToken?: string;
   user: User;
 };
 
@@ -129,4 +130,13 @@ export async function resetPassword(params: {
 /** Fetch authenticated profile using a JWT token (from cookie or OAuth). */
 export async function fetchProfileWithToken(token: string) {
   return requestWithAuth<ProfileResponse>(`${AUTH}/profile`, token);
+}
+
+/** Exchange a refresh token for a new access token. */
+export async function refreshAccessToken(refreshToken: string) {
+  return request<{ success: boolean; token: string }>(`${AUTH}/refresh-token`, {
+    method: 'POST',
+    body: { refreshToken },
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
