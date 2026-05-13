@@ -19,7 +19,7 @@ import type { User } from '../../core/api';
 import MobileLaptop from '../../assets/icons/mobile-laptop.svg';
 
 type LoginScreenProps = {
-  onSuccess: (token: string, user: User) => void;
+  onSuccess: (token: string, user: User, refreshToken?: string) => void;
   onForgotPassword?: () => void;
   onGooglePress?: () => void;
 };
@@ -115,7 +115,7 @@ export function LoginScreen({
       return;
     }
     if (data?.success && data?.token && data?.user) {
-      onSuccess(data.token, data.user);
+      onSuccess(data.token, data.user, data.refreshToken);
     } else {
       console.log("Login failed", data);
       setError((data as { message?: string })?.message || 'Login failed.');

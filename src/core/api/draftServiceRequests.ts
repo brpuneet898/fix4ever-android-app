@@ -103,6 +103,15 @@ async function callDraftEndpoint<T>(params: {
   method: 'GET' | 'POST' | 'DELETE';
   body?: object;
 }) {
+  const token = await getStoredToken();
+  if (token) {
+    return requestWithAuth<T>(params.path, token, {
+      method: params.method,
+      body: params.body,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  // Guest fallback: identify by session ID
   const headers = await getSessionHeaders();
   return request<T>(params.path, {
     method: params.method,

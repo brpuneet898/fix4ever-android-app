@@ -29,8 +29,8 @@ export default function AuthStack({ route }: { route: { params?: { screen?: stri
 
     const { setUser } = useAuth();
 
-      const handleLoginSuccess = async (token: string, user: User) => {
-        await setAuth(token, user);
+      const handleLoginSuccess = async (token: string, user: User, refreshToken?: string) => {
+        await setAuth(token, user, refreshToken);
         setUser(user);
       };
     
@@ -60,10 +60,9 @@ export default function AuthStack({ route }: { route: { params?: { screen?: stri
             >
                 {(props) => (
                     <LoginScreen
-                        onSuccess={async (token, user) => {
-                            // Handle successful login
+                        onSuccess={async (token, user, refreshToken) => {
                             console.log('Login successful', { token, user });
-                            await handleLoginSuccess(token, user);
+                            await handleLoginSuccess(token, user, refreshToken);
                             props.navigation.reset({
                                 index: 0,
                                 routes: [{ name: 'Main' }],
@@ -78,10 +77,9 @@ export default function AuthStack({ route }: { route: { params?: { screen?: stri
                 {(props) => (
                     <SignupScreen
                         onBack={() => props.navigation.goBack()}
-                        onSuccess={async (token, user) => {
-                            // Handle successful signup
+                        onSuccess={async (token, user, refreshToken) => {
                             console.log('Signup successful', { token, user });
-                            await handleLoginSuccess(token, user);
+                            await handleLoginSuccess(token, user, refreshToken);
                             props.navigation.reset({
                                 index: 0,
                                 routes: [{ name: 'Main' }],

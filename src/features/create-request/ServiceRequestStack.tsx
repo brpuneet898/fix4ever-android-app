@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { 
-  View, 
-  Text, 
+import {
+  View,
+  Text,
   TouchableOpacity,
   PermissionsAndroid,
   Platform,
 
  } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 //import { createStackNavigator } from '@react-navigation/stack';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/Feather';
@@ -195,13 +196,14 @@ const resolveDraftStepScreen = (draft: DraftServiceRequest): (typeof STACK_STEP_
 // Custom Header Component
 const StepHeader = ({ onClose, routeName }: { onClose: () => void; routeName: string }) => {
   const { colors, spacing, borderRadius } = useTheme();
+  const insets = useSafeAreaInsets();
   const stepIndex = getStepIndex(routeName);
   const title = `${stepIndex + 1}/7 ${STEPS[stepIndex]?.title || 'Service Request'}`;
-  
+
   return (
     <View style={{
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.md,
+      paddingTop: spacing.md + insets.top,
       paddingBottom: spacing.sm,
       backgroundColor: colors.background,
       borderBottomWidth: 1,
@@ -1571,11 +1573,14 @@ function NavigationFooter({
   isLastStep: boolean;
 }) {
   const { colors, spacing } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={{
       flexDirection: 'row' as const,
-      padding: spacing.md,
+      paddingTop: spacing.md,
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.md + insets.bottom,
       backgroundColor: colors.card,
       borderTopWidth: 1,
       borderTopColor: colors.border,
