@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">fix4ever</string>
+    <!-- Placeholder Google Maps API Key - Get real key from Google Cloud Console & update here -->
+    <string name="GOOGLE_MAPS_API_KEY">AIzaSyDummyKeyPlaceholder123456789</string>
+</resources>
