@@ -555,6 +555,8 @@ export function ContactStepScreen({
       <View style={styles.miniMapContainer}>
         <MapView
           style={styles.miniMap}
+          provider="google"
+          initialRegion={mapRegion}
           region={mapRegion}
           onPress={handleMapPress}
           onMapReady={() => {}}

@@ -310,6 +310,11 @@ export function ServiceRequestStack({
     variant?: 'info' | 'success' | 'warning' | 'error';
   } | null>(null);
 
+  const [serviceTypeOverrideModal, setServiceTypeOverrideModal] = useState<{
+    level: 'L2' | 'L3';
+    navigationFn: () => void;
+  } | null>(null);
+
 
   // Address autocomplete state
   const [addressQuery, setAddressQuery] = useState('');
@@ -1172,26 +1177,39 @@ export function ServiceRequestStack({
         const nextStepName = getNextStepName(stepIndex);
         const nextStepIndex = Math.min(STEPS.length - 1, stepIndex + 1);
 
-        // Persist the step the user is moving to, so edit resumes on that step.
-        void saveDraftProgress(nextStepIndex).catch((draftError) => {
-          console.warn('Draft save failed:', draftError);
-        });
-        if (stepIndex === 0) {
-          void getAllBrands();
-        }
-        if (stepIndex === 1) {
-          void getBrandModels(formData.brand);
-        }
-
-        if (nextStepName) {
-          if (typeof currentNavigation.replace === 'function') {
-            currentNavigation.replace(nextStepName);
-          } else {
-            currentNavigation.navigate(nextStepName);
+        const doNavigate = () => {
+          void saveDraftProgress(nextStepIndex).catch((draftError) => {
+            console.warn('Draft save failed:', draftError);
+          });
+          if (stepIndex === 0) {
+            void getAllBrands();
           }
+          if (stepIndex === 1) {
+            void getBrandModels(formData.brand);
+          }
+          if (nextStepName) {
+            if (typeof currentNavigation.replace === 'function') {
+              currentNavigation.replace(nextStepName);
+            } else {
+              currentNavigation.navigate(nextStepName);
+            }
+          }
+          setSearchQuery('');
+        };
+
+        if (
+          stepIndex === 3 &&
+          formData.serviceType === 'onsite' &&
+          (calculatedPricing.defaultLevel === 'L2' || calculatedPricing.defaultLevel === 'L3')
+        ) {
+          setServiceTypeOverrideModal({
+            level: calculatedPricing.defaultLevel,
+            navigationFn: doNavigate,
+          });
+          return;
         }
 
-        setSearchQuery("");
+        doNavigate();
     } else {
         setPopup({
           title: 'Missing Required Fields',
@@ -1352,6 +1370,35 @@ export function ServiceRequestStack({
         message={popup?.message || ''}
         variant={popup?.variant || 'info'}
         onDismiss={() => setPopup(null)}
+      />
+      <ThemedAlertDialog
+        visible={Boolean(serviceTypeOverrideModal)}
+        title={`Level ${serviceTypeOverrideModal?.level?.slice(1)} Problem — Onsite Not Available`}
+        message={`Your described problem is of level ${serviceTypeOverrideModal?.level?.slice(1)} and onsite service for these problems is not available. Choose another service type.`}
+        variant="warning"
+        onDismiss={() => {}}
+        buttons={[
+          {
+            text: 'Visit the Shop',
+            variant: 'primary',
+            onPress: () => {
+              updateFormData('serviceType', 'visit-shop');
+              const fn = serviceTypeOverrideModal?.navigationFn;
+              setServiceTypeOverrideModal(null);
+              fn?.();
+            },
+          },
+          {
+            text: 'Pickup & Drop',
+            variant: 'secondary',
+            onPress: () => {
+              updateFormData('serviceType', 'pickup-drop');
+              const fn = serviceTypeOverrideModal?.navigationFn;
+              setServiceTypeOverrideModal(null);
+              fn?.();
+            },
+          },
+        ]}
       />
       <Stack.Navigator
         initialRouteName={initialStepName}

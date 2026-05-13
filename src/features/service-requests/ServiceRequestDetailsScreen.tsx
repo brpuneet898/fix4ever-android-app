@@ -1556,25 +1556,44 @@ export function ServiceRequestDetailsScreen(): React.ReactElement {
                 <TouchableOpacity
                   style={styles.actionButton}
                   onPress={() => {
-                    if (serviceRequest.assignedTechnician?.pocInfo.phone) {
+                    if (serviceRequest.serviceType === 'onsite') {
+                      Alert.alert(
+                        'Call via Fix4Ever CRM',
+                        "Your call will be routed through Fix4Ever's secure CRM. Neither party's contact details will be shared.",
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Connect Call',
+                            onPress: () =>
+                              Alert.alert('Connecting...', 'Routing your call through Fix4Ever CRM. Please wait.'),
+                          },
+                        ]
+                      );
+                    } else if (serviceRequest.assignedTechnician?.pocInfo.phone) {
                       Linking.openURL(`tel:${serviceRequest.assignedTechnician.pocInfo.phone}`);
                     }
                   }}
                 >
                   <Icon name="phone" size={16} color={colors.primary} />
-                  <Text style={styles.actionButtonText}>Call</Text>
+                  <Text style={styles.actionButtonText}>
+                    {serviceRequest.serviceType === 'onsite' ? 'Call via CRM' : 'Call'}
+                  </Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={styles.actionButton}
                   onPress={() => {
-                    if (serviceRequest.assignedTechnician?.pocInfo.phone) {
+                    if (serviceRequest.serviceType === 'onsite') {
+                      (navigation as any).navigate('OnsiteChat', { serviceRequest });
+                    } else if (serviceRequest.assignedTechnician?.pocInfo.phone) {
                       Linking.openURL(`sms:${serviceRequest.assignedTechnician.pocInfo.phone}`);
                     }
                   }}
                 >
                   <Icon name="message-circle" size={16} color={colors.primary} />
-                  <Text style={styles.actionButtonText}>Message</Text>
+                  <Text style={styles.actionButtonText}>
+                    {serviceRequest.serviceType === 'onsite' ? 'Chat via CRM' : 'Message'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
