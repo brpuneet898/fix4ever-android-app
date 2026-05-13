@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HomeScreen } from '../features/home';
 import { ServiceRequestsScreen } from '../features/service-requests';
 import { ServiceRequestDetailsScreen } from '../features/service-requests/ServiceRequestDetailsScreen';
+import { OnsiteChatScreen } from '../features/service-requests/OnsiteChatScreen';
 import { CreateRequestScreen } from '../features/create-request';
 import { CreateServiceRequestScreen } from '../features/create-request/CreateServiceRequestScreen';
 import { TrackerScreen } from '../features/tracker';
@@ -212,7 +213,8 @@ export default function NavigationTab() {
                 }}
             />
             <Stack.Screen name="CreateServiceRequestScreen" component={CreateServiceRequestScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="ServiceRequestStack" component={ServiceRequestStack} options={{ headerShown: false }} />        
+            <Stack.Screen name="ServiceRequestStack" component={ServiceRequestStack} options={{ headerShown: false }} />
+            <Stack.Screen name="OnsiteChat" component={OnsiteChatScreen} options={{ headerShown: false }} />
         </Stack.Navigator>
     )
 }

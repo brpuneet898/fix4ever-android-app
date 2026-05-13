@@ -18,7 +18,7 @@ const DEV_API_HOST_OVERRIDE: string | null = null;
 
 function getDevHost(): string {
   if (DEV_API_HOST_OVERRIDE) return DEV_API_HOST_OVERRIDE;
-  return Platform.OS === 'android' ? '10.42.241.102' : 'localhost';
+  return Platform.OS === 'android' ? '10.44.48.60' : 'localhost';
 }
 
 function getAPIBaseURL(): string {

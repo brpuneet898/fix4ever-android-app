@@ -326,9 +326,47 @@ export function ServiceRequestsScreen() {
             textStyle={styles.createRequestButtonText}
             onPress={  (() => {
               navigation.navigate('ServiceRequestStack');
-          })} 
+          })}
           />
         </View>
+
+        {/* DEV: remove before shipping */}
+        <TouchableOpacity
+          onPress={() =>
+            (navigation as any).navigate('OnsiteChat', {
+              serviceRequest: {
+                _id: 'dev-test-001',
+                brand: 'Dell',
+                model: 'Inspiron 15',
+                serviceType: 'onsite',
+                preferredDate: '2026-05-15',
+                preferredTime: '11:00 AM',
+                assignedTechnician: {
+                  _id: 'tech-001',
+                  pocInfo: {
+                    fullName: 'Rahul Sharma',
+                    email: 'rahul@fix4ever.in',
+                    phone: '9876543210',
+                  },
+                },
+              },
+            })
+          }
+          style={{
+            marginHorizontal: 16,
+            marginBottom: 8,
+            paddingVertical: 8,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderStyle: 'dashed',
+            borderColor: colors.warning,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ color: colors.warning, fontSize: 12, fontFamily: 'Montserrat-Medium' }}>
+            [DEV] Test Onsite Chat
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
