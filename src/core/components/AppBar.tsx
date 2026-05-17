@@ -68,11 +68,11 @@ export function AppBar({
       ]}
     >
       <View style={[styles.barRow, { paddingBottom: spacing.sm, justifyContent: 'center' }]}>
-        <View style={[styles.logoRow, { position: 'absolute', left: 0, right: 0, justifyContent: 'center' }]}>
+        {/* <View style={[styles.logoRow, { position: 'absolute', left: 0, right: 0, justifyContent: 'center' }]}>
           <Text style={[styles.brand, { color: colors.foreground, fontFamily: 'Montserrat-Bold' }]}>
             fix4ever
           </Text>
-        </View>
+        </View> */}
         <View style={[styles.actionsRow, { marginLeft: 'auto' }]}>          
           
           {isLoggedIn ? (

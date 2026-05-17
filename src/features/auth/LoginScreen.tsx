@@ -352,7 +352,7 @@ export function LoginScreen({
         <View style={styles.logoCircle}>
           <View style={styles.logoClip}>
             <Image
-              source={require('../../assets/icons/blue-icon.png')}
+              source={require('../../assets/icons/blue_icon.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />

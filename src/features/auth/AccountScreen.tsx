@@ -164,7 +164,7 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
         <View style={styles.logoCircle}>
           <View style={styles.logoClip}>
             <Image
-              source={require('../../assets/icons/blue-icon.png')}
+              source={require('../../assets/icons/blue_icon.png')}
               style={styles.logoIcon}
               resizeMode="contain"
             />
