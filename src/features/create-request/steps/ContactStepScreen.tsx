@@ -70,6 +70,7 @@ export function ContactStepScreen({
 
   const [mapRegion, setMapRegion] = useState<Region>(defaultRegion);
   const [isResolvingAddress, setIsResolvingAddress] = useState(false);
+  const [isMapLoading, setIsMapLoading] = useState(true);
 
   
   // Simple text change handler - only update parent
@@ -471,6 +472,22 @@ export function ContactStepScreen({
       color: colors.foreground,
       fontWeight: '500' as const,
     } as TextStyle,
+    mapLoadingOverlay: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: colors.card,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      gap: spacing.sm,
+    } as ViewStyle,
+    mapLoadingText: {
+      fontSize: 13,
+      color: colors.mutedForeground,
+      fontWeight: '500' as const,
+    } as TextStyle,
     mapHelp: {
       marginTop: spacing.sm,
       fontSize: 12,
@@ -559,8 +576,8 @@ export function ContactStepScreen({
           initialRegion={mapRegion}
           region={mapRegion}
           onPress={handleMapPress}
-          onMapReady={() => {}}
-          onMapLoaded={() => {}}
+          onMapReady={() => setIsMapLoading(false)}
+          onMapLoaded={() => setIsMapLoading(false)}
           onRegionChangeComplete={() => {}}
           zoomEnabled
           scrollEnabled
@@ -576,9 +593,17 @@ export function ContactStepScreen({
             />
           )}
         </MapView>
-        <View style={styles.mapOverlay}>
-          <Text style={styles.mapOverlayText}>Tap map to drop pin</Text>
-        </View>
+        {isMapLoading && (
+          <View style={styles.mapLoadingOverlay}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.mapLoadingText}>Loading map...</Text>
+          </View>
+        )}
+        {!isMapLoading && (
+          <View style={styles.mapOverlay}>
+            <Text style={styles.mapOverlayText}>Tap map to drop pin</Text>
+          </View>
+        )}
       </View>
 
       <Text style={styles.mapHelp}>

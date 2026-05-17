@@ -13,6 +13,7 @@ import { Button, ServiceRequestTimer } from '../../core/components';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { getStoredToken } from '../../core/storage';
+import { config } from '../../core/config';
 import { requestWithAuth } from '../../core/api';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -330,8 +331,8 @@ export function ServiceRequestsScreen() {
           />
         </View>
 
-        {/* DEV: remove before shipping */}
-        <TouchableOpacity
+        {/* DEV: only shown when config.DEV_MODE is on */}
+        {config.DEV_MODE && <TouchableOpacity
           onPress={() =>
             (navigation as any).navigate('OnsiteChat', {
               serviceRequest: {
@@ -366,7 +367,7 @@ export function ServiceRequestsScreen() {
           <Text style={{ color: colors.warning, fontSize: 12, fontFamily: 'Montserrat-Medium' }}>
             [DEV] Test Onsite Chat
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity>}
       </View>
 
       <ScrollView
